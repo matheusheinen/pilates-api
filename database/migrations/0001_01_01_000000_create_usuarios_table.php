@@ -9,33 +9,31 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
+
     public function up(): void
     {
         Schema::create('usuarios', function (Blueprint $table) {
+        // --- Campos de Autenticação (para todos) ---
         $table->id();
         $table->string('nome');
         $table->string('email')->unique();
         $table->timestamp('email_verificado')->nullable();
         $table->string('senha');
-        $table->string('role')->default('aluno');
+        $table->string('tipo')->default('aluno'); // 'aluno' ou 'admin'
         $table->rememberToken();
         $table->timestamps();
-    });
 
-        /*Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
+        // --- Campos de Perfil (apenas para alunos) ---
+        $table->string('genero')->nullable();
+        $table->date('data_nascimento')->nullable();
+        $table->string('profissao')->nullable();
+        $table->string('celular')->nullable();
+        $table->decimal('altura', 3, 2)->nullable();
+        $table->decimal('peso', 5, 2)->nullable();
+        $table->text('queixa_principal')->nullable();
+        $table->string('lateralidade')->nullable();
+        $table->text('diagnostico_clinico')->nullable();
         });
-
-        Schema::create('sessions', function (Blueprint $table) {
-            $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->longText('payload');
-            $table->integer('last_activity')->index();
-        });*/
     }
 
     /**
@@ -43,7 +41,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('usuarios');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }

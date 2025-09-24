@@ -1,52 +1,48 @@
 <?php
+// Em app/Models/Usuario.php
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class Usuario extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     protected $table = 'usuarios';
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * A lista de atributos que podem ser preenchidos em massa.
+     * Agora inclui TODOS os campos.
      */
     protected $fillable = [
         'nome',
         'email',
         'senha',
-        'role',
+        'tipo',
+        'genero',
+        'data_nascimento',
+        'profissao',
+        'celular',
+        'altura',
+        'peso',
+        'queixa_principal',
+        'lateralidade',
     ];
 
-    public function aluno()
-    {    
-        return $this->hasOne(Aluno::class, 'usuario_id');
-    }
-    
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-
+     * Atributos que devem ser escondidos para segurança.
+     */
     protected $hidden = [
         'senha',
         'remember_token',
     ];
-    */
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     * 
+     * Atributos que devem ser convertidos para outros tipos.
+     */
     protected function casts(): array
     {
         return [
@@ -54,5 +50,8 @@ class Usuario extends Authenticatable
             'senha' => 'hashed',
         ];
     }
-    */
+    public function avaliacoesPosturais()
+    {
+        return $this->hasMany(AvaliacaoPostural::class, 'usuario_id');
+    }
 }

@@ -15,7 +15,7 @@ class AvaliacaoPostural extends Model
 
 
     protected $fillable = [
-        'aluno_id',
+        'usuario_id',
         'data_avaliacao',
         'anterior_cabeca',
         'anterior_ombros_altura',
@@ -53,8 +53,8 @@ class AvaliacaoPostural extends Model
         'anexos' => 'array',
     ];
 
-    public function aluno()
+    public function usuario()
     {
-        return $this->belongsTo(Aluno::class, 'aluno_id');
+        return $this->belongsTo(Usuario::class, 'usuario_id');
     }
 }
