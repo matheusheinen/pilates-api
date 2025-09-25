@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Usuario;
+use Illuminate\Contracts\Cache\Store;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\StoreUsuarioRequest;
+use App\Http\Requests\UpdateUsuarioRequest;
 
 class UsuarioController extends Controller
 {
@@ -19,9 +23,17 @@ class UsuarioController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreUsuarioRequest $request)
     {
-        $usuario = Usuario::create($request->all());
+        $dadosValidados = $request->validated();
+
+        if($dadosValidados['tipo'] == null) {
+            $dadosValidados['tipo'] = 'aluno';
+        }
+        
+        $dadosValidados['senha'] = Hash::make($dadosValidados['senha']);
+
+        $usuario = Usuario::create($dadosValidados);
         return response()->json($usuario, 201);
     }
 
@@ -36,19 +48,22 @@ class UsuarioController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(UpdateUsuarioRequest $request, $id)
     {
+        $dadosValidados = $request->validated();
+
+
         $usuario = Usuario::findOrFail($id);
-        $usuario->update($request->all());
+        $usuario->update($dadosValidados);
         return response()->json($usuario, 200);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Usuario $usuario)
     {
-        Usuario::destroy($id);
+        $usuario->delete();
         return response()->json(null, 204);
     }
 }
