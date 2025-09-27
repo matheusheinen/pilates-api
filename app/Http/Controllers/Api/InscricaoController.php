@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreInscricaoRequest;
+use App\Http\Requests\UpdateInscricaoRequest;
 use Illuminate\Http\JsonResponse;
 use App\Models\HorarioFixo;
 use App\Models\Inscricao;
@@ -107,9 +108,46 @@ class InscricaoController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateInscricaoRequest $request, Inscricao $inscricao)
     {
-        //
+        $dadosValidados = $request->validated();
+
+        DB::beginTransaction();
+        try {
+            // Atualiza os campos principais da inscrição (plano_id, data_inicio, ativo)
+            // A função array_filter remove as chaves nulas ou vazias,
+            // garantindo que só atualizamos o que foi enviado.
+            $inscricao->update(array_filter([
+                'plano_id' => $dadosValidados['plano_id'] ?? null,
+                'data_inicio' => $dadosValidados['data_inicio'] ?? null,
+                'ativo' => $dadosValidados['ativo'] ?? null,
+            ]));
+
+            // Se um novo conjunto de horários foi enviado, apaga os antigos e cria os novos.
+            if (isset($dadosValidados['horarios'])) {
+                // Apaga todos os horários fixos antigos associados a esta inscrição.
+                $inscricao->horariosFixos()->delete();
+
+                // Cria os novos horários fixos.
+                foreach ($dadosValidados['horarios'] as $horario) {
+                    $inscricao->horariosFixos()->create($horario);
+                }
+            }
+
+            DB::commit();
+
+            // Carrega os dados atualizados para retornar a versão mais recente.
+            $inscricao->load(['usuario', 'plano', 'horariosFixos']);
+
+            return response()->json($inscricao);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Ocorreu um erro ao atualizar a inscrição.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
