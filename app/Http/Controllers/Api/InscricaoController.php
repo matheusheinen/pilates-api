@@ -9,6 +9,8 @@ use App\Http\Requests\UpdateInscricaoRequest;
 use Illuminate\Http\JsonResponse;
 use App\Models\HorarioFixo;
 use App\Models\Inscricao;
+use App\Models\Plano;
+use App\Models\Usuario;
 use Illuminate\Support\Facades\DB;
 
 class InscricaoController extends Controller
@@ -98,37 +100,35 @@ class InscricaoController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Inscricao $inscricao)
+    public function show(string $id)
     {
-            $inscricao->load(['usuario', 'plano', 'horariosFixos']);
+        // 1. Encontra a inscrição pelo ID ou falha com um erro 404 Not Found.
+        $inscricao = Inscricao::findOrFail($id);
 
-            return response()->json($inscricao);
+        // 2. Carrega os relacionamentos necessários.
+        $inscricao->load(['usuario', 'plano', 'horariosFixos']);
+
+        // 3. Retorna a inscrição com os dados carregados.
+        return response()->json($inscricao);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateInscricaoRequest $request, Inscricao $inscricao)
+    public function update(UpdateInscricaoRequest $request, string $id)
     {
+        $inscricao = Inscricao::findOrFail($id);
         $dadosValidados = $request->validated();
 
         DB::beginTransaction();
         try {
-            // Atualiza os campos principais da inscrição (plano_id, data_inicio, ativo)
-            // A função array_filter remove as chaves nulas ou vazias,
-            // garantindo que só atualizamos o que foi enviado.
-            $inscricao->update(array_filter([
-                'plano_id' => $dadosValidados['plano_id'] ?? null,
-                'data_inicio' => $dadosValidados['data_inicio'] ?? null,
-                'ativo' => $dadosValidados['ativo'] ?? null,
-            ]));
+            // 1. Atualiza a inscrição diretamente com os dados validados.
+            // O Form Request já garante que só os campos permitidos ('ativo', 'plano_id', etc.) estão aqui.
+            $inscricao->update($dadosValidados);
 
-            // Se um novo conjunto de horários foi enviado, apaga os antigos e cria os novos.
+            // 2. Se um novo conjunto de horários foi enviado, apaga os antigos e cria os novos.
             if (isset($dadosValidados['horarios'])) {
-                // Apaga todos os horários fixos antigos associados a esta inscrição.
                 $inscricao->horariosFixos()->delete();
-
-                // Cria os novos horários fixos.
                 foreach ($dadosValidados['horarios'] as $horario) {
                     $inscricao->horariosFixos()->create($horario);
                 }
@@ -136,9 +136,7 @@ class InscricaoController extends Controller
 
             DB::commit();
 
-            // Carrega os dados atualizados para retornar a versão mais recente.
             $inscricao->load(['usuario', 'plano', 'horariosFixos']);
-
             return response()->json($inscricao);
 
         } catch (\Exception $e) {
