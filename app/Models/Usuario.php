@@ -1,5 +1,4 @@
 <?php
-// Em app/Models/Usuario.php
 
 namespace App\Models;
 
@@ -29,13 +28,11 @@ class Usuario extends Authenticatable
         'lateralidade',
     ];
 
-
     protected $hidden = [
         'senha',
         'remember_token',
     ];
 
-   
     protected function casts(): array
     {
         return [
@@ -43,11 +40,34 @@ class Usuario extends Authenticatable
             'senha' => 'hashed',
         ];
     }
+
+    /**
+     * Define a relação: um Usuário tem muitas Avaliações Posturais.
+     */
     public function avaliacoesPosturais()
     {
         return $this->hasMany(AvaliacaoPostural::class, 'usuario_id');
     }
 
+    /**
+     * Define a relação: um Usuário tem muitas Inscrições.
+     */
+    public function inscricoes()
+    {
+        return $this->hasMany(Inscricao::class);
+    }
+
+    /**
+     * Define a relação: um Usuário tem muitas Aulas.
+     */
+    public function aulas()
+    {
+        return $this->hasMany(Aula::class);
+    }
+
+    /**
+     * Informa ao Laravel que a nossa coluna de senha se chama 'senha'.
+     */
     public function getAuthPasswordName()
     {
         return 'senha';
