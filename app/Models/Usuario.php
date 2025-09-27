@@ -47,4 +47,9 @@ class Usuario extends Authenticatable
     {
         return $this->hasMany(AvaliacaoPostural::class, 'usuario_id');
     }
+
+    public function getAuthPasswordName()
+    {
+        return 'senha';
+    }
 }

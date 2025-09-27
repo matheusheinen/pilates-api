@@ -30,8 +30,6 @@ class UsuarioController extends Controller
         if($dadosValidados['tipo'] == null) {
             $dadosValidados['tipo'] = 'aluno';
         }
-        
-        $dadosValidados['senha'] = Hash::make($dadosValidados['senha']);
 
         $usuario = Usuario::create($dadosValidados);
         return response()->json($usuario, 201);

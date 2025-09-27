@@ -2,40 +2,49 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller; // Importa a classe base Controller
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth; // Import necessário
+use App\Http\Controllers\Controller;
 use App\Models\Usuario;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Lida com uma tentativa de autenticação.
      */
     public function login(Request $request)
     {
-        $credenciais = $request->validate([
+
+        $request->validate([
             'email' => 'required|email',
             'senha' => 'required',
         ]);
 
 
-        if (Auth::attempt($credenciais)) {
-
-            $usuario = Usuario::where('email', $credenciais['email'])->first();
-
-            $token = $usuario->createToken('auth_token')->plainTextToken;
+        $usuario = Usuario::where('email', $request->email)->first();
 
 
+        if (! $usuario || ! Hash::check($request->senha, $usuario->senha)) {
             return response()->json([
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-                'usuario' => $usuario,
-            ]);
+                'message' => 'As credenciais fornecidas estão incorretas.'
+            ], 401); 
         }
+
+        $token = $usuario->createToken('auth_token')->plainTextToken;
+
         return response()->json([
-            'message' => 'As credenciais fornecidas estão incorretas.'
-        ], 401);
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'usuario' => $usuario
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        // Pega no usuário autenticado e apaga TODOS os seus tokens de acesso.
+        $request->user()->tokens()->delete();
+
+        return response()->json(['message' => 'Logout realizado com sucesso.']);
     }
 }

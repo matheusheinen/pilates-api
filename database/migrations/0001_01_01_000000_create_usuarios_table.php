@@ -13,7 +13,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('usuarios', function (Blueprint $table) {
-        // --- Campos de Autenticação (para todos) ---
         $table->id();
         $table->string('nome');
         $table->string('email')->unique();
@@ -23,7 +22,6 @@ return new class extends Migration
         $table->rememberToken();
         $table->timestamps();
 
-        // --- Campos de Perfil (apenas para alunos) ---
         $table->string('genero')->nullable();
         $table->date('data_nascimento')->nullable();
         $table->string('profissao')->nullable();
