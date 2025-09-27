@@ -17,7 +17,9 @@ class InscricaoController extends Controller
      */
     public function index()
     {
-        //
+        $inscricoes = Inscricao::with(['usuario', 'plano'])->get();
+
+        return response()->json($inscricoes);
     }
 
     /**
@@ -79,21 +81,27 @@ class InscricaoController extends Controller
             // Retorna a inscrição criada, incluindo os horários fixos.
             return response()->json($inscricao->load('horariosFixos'), 201);
 
+        // ...
         } catch (\Exception $e) {
             // Se algo deu errado, reverte todas as operações.
             DB::rollBack();
 
-            // Retorna um erro genérico.
-            return response()->json(['message' => 'Ocorreu um erro ao criar a inscrição.'], 500);
+            // Retorna um erro MAIS DETALHADO para depuração.
+            return response()->json([
+                'message' => 'Ocorreu um erro ao criar a inscrição.',
+            ], 500);
         }
+
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Inscricao $inscricao)
     {
-        //
+            $inscricao->load(['usuario', 'plano', 'horariosFixos']);
+
+            return response()->json($inscricao);
     }
 
     /**

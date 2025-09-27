@@ -9,6 +9,8 @@ class Inscricao extends Model
 {
     use HasFactory;
 
+    protected $table = 'inscricoes';
+
     protected $fillable = [
         'usuario_id',
         'plano_id',
