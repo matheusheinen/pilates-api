@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AulaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UsuarioController;
@@ -26,4 +27,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('usuarios', UsuarioController::class)->except(['store']); 
     Route::apiResource('avaliacoes-posturais', AvaliacaoPosturalController::class);
     Route::apiResource('inscricoes', InscricaoController::class);
+    Route::apiResource('aulas', AulaController::class);
 });
