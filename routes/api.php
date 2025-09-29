@@ -29,3 +29,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('inscricoes', InscricaoController::class);
     Route::apiResource('aulas', AulaController::class);
 });
+

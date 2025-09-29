@@ -41,25 +41,16 @@ class Usuario extends Authenticatable
         ];
     }
 
-    /**
-     * Define a relação: um Usuário tem muitas Avaliações Posturais.
-     */
     public function avaliacoesPosturais()
     {
         return $this->hasMany(AvaliacaoPostural::class, 'usuario_id');
     }
 
-    /**
-     * Define a relação: um Usuário tem muitas Inscrições.
-     */
     public function inscricoes()
     {
         return $this->hasMany(Inscricao::class);
     }
 
-    /**
-     * Define a relação: um Usuário tem muitas Aulas.
-     */
     public function aulas()
     {
         return $this->hasMany(Aula::class);

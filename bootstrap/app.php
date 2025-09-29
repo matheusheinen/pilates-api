@@ -12,7 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Habilita a autenticação de SPA do Sanctum
+        $middleware->statefulApi();
+
+        // Adiciona uma exceção à verificação de token CSRF para todas as rotas de API
+        $middleware->validateCsrfTokens(except: [
+        'api/*'
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
