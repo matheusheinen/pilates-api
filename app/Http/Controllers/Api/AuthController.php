@@ -28,7 +28,7 @@ class AuthController extends Controller
         if (! $usuario || ! Hash::check($request->senha, $usuario->senha)) {
             return response()->json([
                 'message' => 'As credenciais fornecidas estão incorretas.'
-            ], 401); 
+            ], 401);
         }
 
         $token = $usuario->createToken('auth_token')->plainTextToken;
@@ -42,7 +42,6 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        // Pega no usuário autenticado e apaga TODOS os seus tokens de acesso.
         $request->user()->tokens()->delete();
 
         return response()->json(['message' => 'Logout realizado com sucesso.']);

@@ -17,10 +17,8 @@ class UsuarioController extends Controller
      */
     public function index()
     {
-        // Busca no banco de dados todos os usuários onde a coluna 'tipo' é 'aluno'
         $alunos = Usuario::where('tipo', 'aluno')->get();
 
-        // Retorna a lista de alunos
         return response()->json(['data' => $alunos]);
     }
 
