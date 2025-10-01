@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col md:flex-row h-screen w-screen relative bg-[#151515]">
-    <img src="/public/logo.png" alt="Logo" class="absolute top-4 left-14 w-48 z-20 logo" style="transition: transform 0.3s ease;"/>
+    <img :src="logoUrl" alt="Logo" class="absolute top-4 left-14 w-48 z-20 logo" style="transition: transform 0.3s ease;"/>
     <div class="absolute top-20 left-1/2 w-72 h-72 bg-teal-900 rounded-full opacity-60 pointer-events-none"></div>
     <div class="absolute bottom-10 right-10 w-64 h-64 bg-teal-800 rounded-full opacity-50 pointer-events-none"></div>
 
@@ -45,46 +45,33 @@
 import { reactive, ref, computed } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+// Importa a imagem diretamente para que o Vite a processe
+import logoUrl from '../../assets/logo.png';
 
 const router = useRouter();
 
-// Reatividade para os campos do formulário
 const form = reactive({
-    // IMPORTANTE: O backend espera 'email', não 'telefone', para o login.
-    // Alterei para corresponder à sua API.
     email: '',
     senha: ''
 });
 
-// Reatividade para a mensagem de erro
 const errorMessage = ref('');
-// Reatividade para o tipo do campo de senha (password/text)
 const showPassword = ref(false);
 
-// Propriedade computada que retorna o tipo do input de senha
 const passwordFieldType = computed(() => showPassword.value ? 'text' : 'password');
 
-// Função para alternar a visibilidade da senha
 const togglePassword = () => {
     showPassword.value = !showPassword.value;
 };
 
-// Função chamada ao submeter o formulário
 const handleLogin = async () => {
     errorMessage.value = '';
     try {
         const response = await axios.post('/api/login', form);
-
         localStorage.setItem('authToken', response.data.access_token);
         localStorage.setItem('userData', JSON.stringify(response.data.usuario));
-
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
-
-        // Redireciona para a rota 'dashboard' (vamos criar em breve)
-        // router.push({ name: 'dashboard' });
-
         alert(`Login bem-sucedido! Bem-vindo(a), ${response.data.usuario.nome}!`);
-
     } catch (error) {
         if (error.response && error.response.status === 401) {
             errorMessage.value = 'Email ou senha inválidos.';
