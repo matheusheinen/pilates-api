@@ -13,12 +13,10 @@ return new class extends Migration
     {
         Schema::create('aulas', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('usuario_id')->constrained('usuarios')->onDelete('cascade');
-        $table->date('data_aula');
-        $table->time('horario');
-        $table->time('horario_fim'); // <-- ADICIONADO
-        $table->string('status')->default('agendada');
-        $table->string('tipo')->default('normal');
+        $table->foreignId('inscricao_id')->nullable()->constrained('inscricoes')->onDelete('cascade');
+        $table->dateTime('data_hora_inicio');
+        $table->integer('duracao_minutos')->default(50);
+        $table->string('status')->default('disponivel'); // 'disponivel', 'reservada', 'concluida', 'cancelada'
         $table->text('observacoes')->nullable();
         $table->timestamps();
         });

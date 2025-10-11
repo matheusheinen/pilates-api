@@ -1,11 +1,11 @@
 <template>
-  <div class="flex">
+  <div class="flex bg-gray-900 text-white min-h-screen">
     <nav class="fixed top-0 left-0 h-screen w-64 bg-[#151515] overflow-y-auto z-50">
       <div class="p-6">
-        <h1 class="text-2xl font-semibold mb-8 text-[#009088]">Menu</h1>
-        <ul class="space-y-4">
+        <img :src="logoUrl" alt="Logo" class="w-32 mb-8"/>
+        <ul class="space-y-2">
           <li v-for="item in menuItems" :key="item.label">
-            <button @click="selectMenu(item)" :class="['flex items-center space-x-3 p-2 rounded-xl w-full text-left transition duration-150', selectedMenu.label === item.label ? 'bg-[#242424] text-[#009088] font-medium' : 'text-[#f0f0f0] hover:bg-[#242424]']">
+            <button @click="selectMenu(item)" :class="['flex items-center space-x-3 p-2 rounded-lg w-full text-left transition duration-150', selectedMenu.label === item.label ? 'bg-[#242424] text-[#009088] font-medium' : 'text-[#f0f0f0] hover:bg-[#242424]']">
               <component :is="item.icon" class="w-5 h-5" />
               <span class="font-normal text-sm">{{ item.label }}</span>
             </button>
@@ -14,20 +14,16 @@
       </div>
     </nav>
 
-    <main class="flex-grow p-10 ml-64">
+    <main class="flex-grow p-6 sm:p-10 ml-64">
       <header class="flex justify-end items-center mb-8">
         <div class="text-right">
-          <p class="font-semibold text-[#f0f0f0]">{{ usuario.nome }}</p>
-          <p class="text-sm text-[#a0a0a0]">{{ usuario.tipo }}</p>
+          <p class="font-semibold">{{ usuario.nome }}</p>
+          <p class="text-sm text-[#a0a0a0] capitalize">{{ usuario.tipo }}</p>
         </div>
       </header>
 
       <section>
-        <div class="bg-[#151515] p-6 rounded-xl min-h-[calc(100vh-150px)]">
-          <h3 class="text-lg font-semibold mb-2 text-white">{{ selectedMenu.label }}</h3>
-          <p class="text-[#a0a0a0] mb-4">{{ selectedMenu.description }}</p>
-          <div v-html="selectedMenu.content" class="text-white"></div>
-        </div>
+        <component :is="selectedMenu.component" />
       </section>
     </main>
   </div>
@@ -36,19 +32,30 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-// Importe os ícones que vamos usar
-import { UsersRound, Wallet, CalendarCheck } from 'lucide-vue-next';
+// Importa os ícones que vamos usar
+import { UsersRound, Wallet, CalendarCheck, Clock, FilePlus } from 'lucide-vue-next';
+import logoUrl from '../../assets/logo.png';
+
+// 1. Importe os novos componentes que criámos
+import Agenda from './dashboard/Agenda.vue';
+import HorariosAgenda from './dashboard/HorariosAgenda.vue';
+import Clientes from './dashboard/Clientes.vue';
+// import CadastrarAluno from './dashboard/CadastrarAluno.vue';
+// import Pagamentos from './dashboard/Pagamentos.vue';
 
 const router = useRouter();
 const usuario = ref(JSON.parse(localStorage.getItem('userData')) || {});
 
-// Associe os componentes dos ícones aos itens do menu
+// 2. Atualize o menu para associar cada item a um componente
 const menuItems = ref([
-    { label: "Clientes", icon: UsersRound, description: "Visualize todos seus clientes", content: "Conteúdo da área de clientes aqui..." },
-    { label: 'Pagamentos', icon: Wallet, description: 'Aqui você gerencia todos os pagamentos.', content: "Conteúdo da área de pagamentos aqui..." },
-    { label: 'Agenda', icon: CalendarCheck, description: 'Veja e edite a agenda.', content: "Conteúdo da agenda aqui..." },
+    { label: "Agenda", icon: CalendarCheck, component: Agenda },
+    { label: "Horários da Agenda", icon: Clock, component: HorariosAgenda },
+    { label: "Clientes", icon: UsersRound, component: Clientes },
+    // { label: 'Cadastrar Aluno', icon: FilePlus, component: CadastrarAluno },
+    // { label: 'Pagamentos', icon: Wallet, component: Pagamentos },
 ]);
 
+// Define a "Agenda" como o item inicial
 const selectedMenu = ref(menuItems.value[0]);
 
 const selectMenu = (item) => {
@@ -57,16 +64,7 @@ const selectMenu = (item) => {
 
 onMounted(() => {
   if (!usuario.value.id) {
-    // Se não houver dados do usuário, redireciona para o login
     router.push({ name: 'login' });
   }
 });
 </script>
-
-<style>
-.bg-sidebar-dark { background-color: #151515; }
-.bg-sidebar-item-hover { background-color: #242424; }
-.text-accent-green { color: #009088; }
-.text-text-light { color: #f0f0f0; }
-.text-text-muted { color: #a0a0a0; }
-</style>

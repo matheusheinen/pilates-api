@@ -9,10 +9,17 @@ namespace App\Models;
  {
      use HasFactory;
 
+     /**
+      * O nome da tabela associada ao model.
+      *
+      * @var string
+      */
+     protected $table = 'horarios_agenda'; // <-- ADICIONE ESTA LINHA
+
      protected $fillable = [
             'dia_semana',
             'horario_inicio',
-            'horario_fim',
+            'duracao_minutos',
             'inscricao_id',
      ];
 

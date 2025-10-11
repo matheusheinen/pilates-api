@@ -15,7 +15,7 @@ return new class extends Migration
         $table->id();
         $table->integer('dia_semana'); // 1=Seg, 2=Ter, ...
         $table->time('horario_inicio');
-        $table->time('horario_fim');
+        $table->integer('duracao_minutos')->default(50);
         $table->foreignId('inscricao_id')->nullable()->constrained('inscricoes')->onDelete('set null');
 
         $table->timestamps();

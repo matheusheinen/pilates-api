@@ -3,136 +3,95 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Http\Requests\StoreInscricaoRequest;
 use App\Http\Requests\UpdateInscricaoRequest;
-use Illuminate\Http\JsonResponse;
-use App\Models\HorarioFixo;
 use App\Models\Inscricao;
-use App\Models\Plano;
-use App\Models\Usuario;
+use App\Models\HorarioAgenda;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 
 class InscricaoController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Lista todas as inscrições.
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        $inscricoes = Inscricao::with(['usuario', 'plano'])->get();
-
+        $inscricoes = Inscricao::with(['usuario', 'plano', 'horariosAgenda'])->get();
         return response()->json($inscricoes);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Cria uma nova inscrição e aloca os horários fixos para o aluno.
      */
     public function store(StoreInscricaoRequest $request): JsonResponse
     {
         $dadosValidados = $request->validated();
-        $horariosParaAgendar = $dadosValidados['horarios'];
 
+        // IDs dos horários que o aluno escolheu (ex: [1, 5, 12])
+        $horariosIds = $dadosValidados['horarios_agenda_ids'];
 
-        foreach ($horariosParaAgendar as $horario) {
-            $alunosNoHorario = HorarioFixo::where('dia_da_semana', $horario['dia_da_semana'])
-                                          ->where('horario', $horario['horario'])
-                                          ->count();
+        // 1. Verifica se todos os horários escolhidos estão realmente livres
+        $horariosOcupados = HorarioAgenda::whereIn('id', $horariosIds)->whereNotNull('inscricao_id')->count();
 
-            if ($alunosNoHorario >= 3) {
-                return response()->json([
-                    'message' => "O horário de {$horario['horario']} no dia da semana {$horario['dia_da_semana']} já está cheio."
-                ], 409);
-            }
-
-            $aulasEmSimultaneo = HorarioFixo::where('dia_da_semana', $horario['dia_da_semana'])
-                                            ->where('horario', '<', $horario['horario_fim'])
-                                            ->where('horario_fim', '>', $horario['horario'])
-                                            ->count();
-
-            if ($aulasEmSimultaneo >= 2) {
-                return response()->json([
-                    'message' => "O limite de 2 aulas em simultâneo foi atingido para o horário entre {$horario['horario']} e {$horario['horario_fim']}."
-                ], 409);
-            }
+        if ($horariosOcupados > 0) {
+            return response()->json(['message' => 'Um ou mais dos horários escolhidos já estão ocupados.'], 409); // Conflict
         }
 
+        // 2. Usa uma transação para garantir a integridade dos dados
         DB::beginTransaction();
         try {
+            // Cria a inscrição
             $inscricao = Inscricao::create([
                 'usuario_id' => $dadosValidados['usuario_id'],
                 'plano_id' => $dadosValidados['plano_id'],
                 'data_inicio' => $dadosValidados['data_inicio'],
+                'status' => 'ativa',
             ]);
 
-            foreach ($horariosParaAgendar as $horario) {
-                $inscricao->horariosFixos()->create($horario);
-            }
+            // Aloca os horários para esta nova inscrição
+            HorarioAgenda::whereIn('id', $horariosIds)->update(['inscricao_id' => $inscricao->id]);
 
-            DB::commit();
+            DB::commit(); // Confirma as alterações
 
-            return response()->json($inscricao->load('horariosFixos'), 201);
-
-        // ...
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'message' => 'Ocorreu um erro ao criar a inscrição.',
-            ], 500);
-        }
-
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        $inscricao = Inscricao::findOrFail($id);
-
-        $inscricao->load(['usuario', 'plano', 'horariosFixos']);
-
-        return response()->json($inscricao);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateInscricaoRequest $request, string $id)
-    {
-        $inscricao = Inscricao::findOrFail($id);
-        $dadosValidados = $request->validated();
-
-        DB::beginTransaction();
-        try {
-            $inscricao->update($dadosValidados);
-
-            if (isset($dadosValidados['horarios'])) {
-                $inscricao->horariosFixos()->delete();
-                foreach ($dadosValidados['horarios'] as $horario) {
-                    $inscricao->horariosFixos()->create($horario);
-                }
-            }
-
-            DB::commit();
-
-            $inscricao->load(['usuario', 'plano', 'horariosFixos']);
-            return response()->json($inscricao);
+            // Retorna a inscrição completa com os horários associados
+            return response()->json($inscricao->load('horariosAgenda'), 201);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'message' => 'Ocorreu um erro ao atualizar a inscrição.',
-                'error' => $e->getMessage()
-            ], 500);
+            DB::rollBack(); // Desfaz tudo se algo der errado
+            return response()->json(['message' => 'Ocorreu um erro ao criar a inscrição.', 'error' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Mostra os detalhes de uma inscrição específica.
      */
-    public function destroy(string $id)
+    public function show(Inscricao $inscricao): JsonResponse
     {
-        //
+        return response()->json($inscricao->load(['usuario', 'plano', 'horariosAgenda']));
+    }
+
+    /**
+     * Atualiza uma inscrição.
+     */
+    public function update(UpdateInscricaoRequest $request, Inscricao $inscricao): JsonResponse
+    {
+        // Esta lógica pode ser expandida no futuro para permitir a troca de horários fixos
+        $inscricao->update($request->validated());
+        return response()->json($inscricao->load('horariosAgenda'));
+    }
+
+    /**
+     * "Apaga" uma inscrição (geralmente inativando-a).
+     */
+    public function destroy(Inscricao $inscricao): JsonResponse
+    {
+        // Libera os horários fixos que estavam associados a esta inscrição
+        HorarioAgenda::where('inscricao_id', $inscricao->id)->update(['inscricao_id' => null]);
+
+        // Inativa ou apaga a inscrição
+        $inscricao->update(['status' => 'inativa']); // ou $inscricao->delete();
+
+        return response()->json(null, 204);
     }
 }

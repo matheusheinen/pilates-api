@@ -28,8 +28,8 @@ class Inscricao extends Model
         return $this->belongsTo(Plano::class);
     }
 
-    public function horariosFixos()
+    public function horariosAgenda()
     {
-        return $this->hasMany(HorarioFixo::class);
+        return $this->hasMany(HorarioAgenda::class);
     }
 }
