@@ -22,6 +22,7 @@ return new class extends Migration
         $table->rememberToken();
         $table->timestamps();
 
+        $table->string('cpf')->nullable()->unique();
         $table->string('genero')->nullable();
         $table->date('data_nascimento')->nullable();
         $table->string('profissao')->nullable();

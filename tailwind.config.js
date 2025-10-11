@@ -3,7 +3,7 @@ export default {
   content: [
     "./resources/**/*.blade.php",
     "./resources/**/*.js",
-    "./resources/**/*.vue", // <-- VERIFIQUE SE ESTA LINHA ESTÁ EXATAMENTE ASSIM
+    "./resources/**/*.vue",
   ],
   theme: {
     extend: {},

@@ -32,6 +32,7 @@ class StoreUsuarioRequest extends FormRequest
             'genero' => ['nullable', 'string', Rule::in(['masculino', 'feminino', 'outro'])],
             'data_nascimento' => 'nullable|date',
             'profissao' => 'nullable|string|max:255',
+            'cpf' => ['nullable', 'string', 'digits:11'],
             'celular' => 'nullable|string|max:20',
             'altura' => 'nullable|numeric',
             'peso' => 'nullable|numeric',

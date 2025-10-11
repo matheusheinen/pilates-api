@@ -18,6 +18,7 @@ class Usuario extends Authenticatable
         'email',
         'senha',
         'tipo',
+        'cpf',
         'genero',
         'data_nascimento',
         'profissao',
