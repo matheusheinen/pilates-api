@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Aula;
-use App\Models\Usuario;
+use Illuminate\Support\Facades\Artisan;
 use App\Models\Inscricao; // Garanta que este 'use' está presente
 
 class AulaController extends Controller
@@ -102,4 +102,31 @@ class AulaController extends Controller
             'nova_aula' => $novoHorario
         ]);
     }
+
+    // ...
+    public function atualizarAgenda(Request $request)
+    {
+        // 1. Garante que apenas o admin pode fazer isso
+        if (Auth::user()->tipo !== 'admin') {
+            return response()->json(['message' => 'Acesso não autorizado'], 403);
+        }
+
+        // 2. Define os parâmetros para o comando
+        // Por padrão, gera/atualiza as próximas 4 semanas a partir de hoje
+        $parametros = [
+            '--weeks' => 4
+        ];
+
+        // 3. Chama o comando do Artisan 'app:atualizar-agenda'
+        Artisan::call('app:atualizar-agenda', $parametros);
+
+        // 4. Pega na saída do comando para devolver uma resposta útil ao frontend
+        $output = Artisan::output();
+
+        return response()->json([
+            'message' => 'Comando para atualizar a agenda foi executado.',
+            'output' => $output
+        ]);
+    }
+
 }

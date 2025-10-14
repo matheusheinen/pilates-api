@@ -21,6 +21,7 @@ namespace App\Models;
             'horario_inicio',
             'duracao_minutos',
             'inscricao_id',
+            'status',
      ];
 
      public function inscricao()

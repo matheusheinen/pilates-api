@@ -1,9 +1,18 @@
 <template>
   <div class="bg-[#151515] p-6 rounded-xl text-white">
-    <h3 class="text-lg font-semibold">Agenda de Aulas</h3>
-    <p class="text-[#a0a0a0] mb-6">Visualize todas as aulas, horários livres e ocupados.</p>
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+      <div>
+        <h3 class="text-lg font-semibold">Agenda de Aulas</h3>
+        <p class="text-[#a0a0a0]">Visualize todas as aulas, horários livres e ocupados.</p>
+      </div>
+      <div>
+        <button @click="atualizarAgenda" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-teal-700 hover:bg-teal-600 font-semibold transition-colors text-sm">
+          Atualizar agenda
+        </button>
+      </div>
+    </div>
 
-    <FullCalendar :options="calendarOptions" />
+    <FullCalendar :options="calendarOptions" ref="fullCalendar" />
 
     <div v-if="showModal" class="modal-overlay" @click="showModal = false">
       <div class="modal-content" @click.stop>
@@ -17,23 +26,22 @@
         <button @click="showModal = false" class="mt-6 w-full py-2 rounded-lg bg-gray-600 hover:bg-gray-500 font-semibold">Fechar</button>
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import axios from 'axios';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-// CORREÇÃO: O caminho da importação foi ajustado para ser mais específico.
 import { ptBR } from 'date-fns/locale';
 import { format } from 'date-fns';
 
 const showModal = ref(false);
 const selectedEvent = ref(null);
+const fullCalendar = ref(null);
 
 const handleEventClick = (clickInfo) => {
   selectedEvent.value = clickInfo.event;
@@ -43,9 +51,7 @@ const handleEventClick = (clickInfo) => {
 const fetchAulas = async (fetchInfo, successCallback, failureCallback) => {
   try {
     const response = await axios.get('/api/aulas', {
-      params: {
-        mes: format(fetchInfo.start, 'yyyy-MM')
-      }
+      params: { mes: format(fetchInfo.start, 'yyyy-MM') }
     });
 
     const events = response.data.map(aula => ({
@@ -59,11 +65,30 @@ const fetchAulas = async (fetchInfo, successCallback, failureCallback) => {
         aluno: aula.inscricao?.usuario?.nome || null,
       }
     }));
-
     successCallback(events);
   } catch (error) {
     console.error('Erro ao buscar aulas:', error);
     failureCallback(error);
+  }
+};
+
+const atualizarAgenda = async () => {
+  if (!confirm('Deseja gerar/atualizar a agenda para as próximas 4 semanas? As aulas já existentes não serão duplicadas.')) {
+    return;
+  }
+
+  try {
+    const response = await axios.post('/api/agenda/gerar-semana');
+    alert('Agenda atualizada com sucesso! O calendário será recarregado.');
+    console.log('Saída do comando:', response.data.output);
+
+    if (fullCalendar.value) {
+      fullCalendar.value.getApi().refetchEvents();
+    }
+
+  } catch (error) {
+    alert('Ocorreu um erro ao atualizar a agenda.');
+    console.error('Erro ao gerar agenda:', error);
   }
 };
 
@@ -75,13 +100,11 @@ const calendarOptions = ref({
     center: 'title',
     right: 'dayGridMonth,timeGridWeek,timeGridDay'
   },
-  locale: ptBR, // Usamos o objeto importado aqui
-  buttonText: {
-    today: 'Hoje',
-    month: 'Mês',
-    week: 'Semana',
-    day: 'Dia'
-  },
+  // --- CORREÇÃO ADICIONADA AQUI ---
+  timeZone: 'local', // Diz ao calendário para usar o fuso horário do navegador
+  // --- FIM DA CORREÇÃO ---
+  locale: ptBR,
+  buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia' },
   allDaySlot: false,
   slotMinTime: "06:00:00",
   slotMaxTime: "22:00:00",
