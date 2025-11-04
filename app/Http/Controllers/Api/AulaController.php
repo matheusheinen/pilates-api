@@ -106,21 +106,16 @@ class AulaController extends Controller
     // ...
     public function atualizarAgenda(Request $request)
     {
-        // 1. Garante que apenas o admin pode fazer isso
         if (Auth::user()->tipo !== 'admin') {
             return response()->json(['message' => 'Acesso não autorizado'], 403);
         }
 
-        // 2. Define os parâmetros para o comando
-        // Por padrão, gera/atualiza as próximas 4 semanas a partir de hoje
-        $parametros = [
-            '--weeks' => 4
-        ];
+        // Parâmetros para o comando, gerando 4 semanas por padrão
+        $parametros = ['--weeks' => 4];
 
-        // 3. Chama o comando do Artisan 'app:atualizar-agenda'
+        // CORREÇÃO: Chama o comando com o nome correto 'app:atualizar-agenda'
         Artisan::call('app:atualizar-agenda', $parametros);
 
-        // 4. Pega na saída do comando para devolver uma resposta útil ao frontend
         $output = Artisan::output();
 
         return response()->json([

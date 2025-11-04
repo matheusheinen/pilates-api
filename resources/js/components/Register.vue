@@ -5,7 +5,7 @@
       <div class="text-center mb-8">
         <img :src="logoUrl" alt="Logo" class="w-40 mx-auto mb-4"/>
         <h3 class="text-3xl font-bold">Cadastro de Novo Aluno</h3>
-        <p class="text-gray-400">Preencha os seus dados para começar</p>
+        <p class="text-gray-400">Preencha os dados para começar</p>
       </div>
 
       <form @submit.prevent="handleRegister" class="space-y-4">
@@ -25,42 +25,48 @@
           <input v-model="formData.cpf" @input="formatarCPF" maxlength="14" type="text" placeholder="CPF" class="form-input">
           <input v-model="formData.profissao" type="text" placeholder="Profissão" class="form-input">
 
-          <div class="md:col-span-2">
-            <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-              <div class="w-full md:w-1/3">
-                <label class="text-xs text-gray-400 ml-1">Data de Nascimento</label>
-                <input v-model="formData.data_nascimento" type="date" class="form-input">
-              </div>
-              <div class="w-full md:w-1/3">
-                <label class="text-xs text-gray-400 ml-1">Altura (m)</label>
-                <input v-model="formData.altura" type="number" step="0.01" placeholder="Ex: 1.75" class="form-input">
-              </div>
-              <div class="w-full md:w-1/3">
-                <label class="text-xs text-gray-400 ml-1">Peso (kg)</label>
-                <input v-model="formData.peso" type="number" step="0.1" placeholder="Ex: 70.5" class="form-input">
-              </div>
+          <div class="md:col-span-1">
+            <label class="text-xs text-gray-400 ml-1">Lateralidade</label>
+            <div class="flex items-center space-x-6 mt-2 p-3 rounded-lg bg-[#0f1616] h-[50px]">
+              <label class="flex items-center cursor-pointer">
+                <input type="radio" v-model="formData.lateralidade" value="Destro" name="lateralidade" class="form-radio">
+                <span class="ml-2 text-sm">Destro</span>
+              </label>
+              <label class="flex items-center cursor-pointer">
+                <input type="radio" v-model="formData.lateralidade" value="Canhoto" name="lateralidade" class="form-radio">
+                <span class="ml-2 text-sm">Canhoto</span>
+              </label>
             </div>
           </div>
-          <div class="md:col-span-2">
+
+          <div class="md:col-span-1">
             <label class="text-xs text-gray-400 ml-1">Gênero</label>
             <div class="flex items-center space-x-6 mt-2 p-3 rounded-lg bg-[#0f1616]">
-              <label class="flex items-center cursor-pointer">
-                <input type="radio" v-model="formData.genero" value="feminino" name="genero" class="form-radio">
-                <span class="ml-2 text-sm">Feminino</span>
-              </label>
-              <label class="flex items-center cursor-pointer">
-                <input type="radio" v-model="formData.genero" value="masculino" name="genero" class="form-radio">
-                <span class="ml-2 text-sm">Masculino</span>
-              </label>
-              <label class="flex items-center cursor-pointer">
-                <input type="radio" v-model="formData.genero" value="outro" name="genero" class="form-radio">
-                <span class="ml-2 text-sm">Outro</span>
-              </label>
+                <label class="flex items-center cursor-pointer"><input type="radio" v-model="formData.genero" value="feminino" name="genero" class="form-radio"><span class="ml-2 text-sm">Feminino</span></label>
+                <label class="flex items-center cursor-pointer"><input type="radio" v-model="formData.genero" value="masculino" name="genero" class="form-radio"><span class="ml-2 text-sm">Masculino</span></label>
             </div>
-          </div>
         </div>
 
-        <textarea v-model="formData.queixa_principal" placeholder="Queixa Principal" rows="3" class="form-input"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="w-full">
+                <label class="text-xs text-gray-400 ml-1">Data de Nascimento</label>
+                <input v-model="formData.data_nascimento" type="date" class="form-input">
+            </div>
+            <div class="w-full">
+                <label class="text-xs text-gray-400 ml-1">Altura (m)</label>
+                <input v-model="formData.altura" type="number" step="0.01" placeholder="Ex: 1.75" class="form-input">
+            </div>
+            <div class="w-full">
+                <label class="text-xs text-gray-400 ml-1">Peso (kg)</label>
+                <input v-model="formData.peso" type="number" step="0.1" placeholder="Ex: 70.5" class="form-input">
+            </div>
+        </div>
+
+        <textarea v-model="formData.diagnostico_clinico" type="text" placeholder="Diagnóstico Clínico" class="form-input"></textarea>
+
+        <textarea v-model="formData.queixa_principal" placeholder="Queixa Principal / Objetivos" rows="3" class="form-input"></textarea>
 
         <button type="submit" class="w-full py-3 mt-4 rounded-lg bg-teal-700 hover:bg-teal-600 text-white font-semibold transition-colors">
           Cadastrar
@@ -76,12 +82,10 @@
         </p>
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup>
-// O SCRIPT PERMANECE O MESMO
 import { reactive, ref } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
@@ -92,7 +96,10 @@ const router = useRouter();
 const formData = reactive({
   nome: '', email: '', senha: '', celular: '', cpf: '',
   data_nascimento: '', genero: '', profissao: '', altura: '',
-  peso: '', queixa_principal: '', tipo: 'aluno'
+  peso: '', queixa_principal: '', tipo: 'aluno',
+  // Campos adicionados na lógica
+  lateralidade: '',
+  diagnostico_clinico: ''
 });
 
 const successMessage = ref('');

@@ -70,7 +70,7 @@ const handleLogin = async () => {
         localStorage.setItem('authToken', response.data.access_token);
         localStorage.setItem('userData', JSON.stringify(response.data.usuario));
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
-        router.push({ name: 'dashboard' });
+        router.push({ name: 'dashboard-agenda' });
     } catch (error) {
         errorMessage.value = 'Email ou senha inválidos.';
         console.error("Erro no login:", error);

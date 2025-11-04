@@ -38,6 +38,7 @@ class StoreUsuarioRequest extends FormRequest
             'peso' => 'nullable|numeric',
             'queixa_principal' => 'nullable|string',
             'lateralidade' => ['nullable', 'string', Rule::in(['destro', 'canhoto'])],
+            'diagnostico_clinico' => 'nullable|string',
         ];
     }
 }

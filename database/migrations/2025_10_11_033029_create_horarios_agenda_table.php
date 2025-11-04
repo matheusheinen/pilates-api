@@ -17,7 +17,7 @@ return new class extends Migration
         $table->time('horario_inicio');
         $table->integer('duracao_minutos')->default(50);
         $table->foreignId('inscricao_id')->nullable()->constrained('inscricoes')->onDelete('set null');
-        $table->string('status')->default('ativo');
+        $table->string('status')->default('ativo')->after('inscricao_id');
 
         $table->timestamps();
     });

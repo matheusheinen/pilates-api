@@ -27,7 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/aulas/disponiveis', [AulaController::class, 'listarDisponiveis']);
 
-    Route::post('/agenda/gerar-semana', [AulaController::class, 'gerarAgendaDaSemana']);
+    Route::post('/agenda/atualizar', [AulaController::class, 'atualizarAgenda']);
 
     // Recursos Principais (CRUDs)
     Route::apiResource('usuarios', UsuarioController::class)->except(['store']);

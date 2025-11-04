@@ -7,7 +7,7 @@
       </div>
       <div>
         <button @click="atualizarAgenda" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-teal-700 hover:bg-teal-600 font-semibold transition-colors text-sm">
-          Atualizar agenda
+          Atualizar Agenda
         </button>
       </div>
     </div>
@@ -72,23 +72,21 @@ const fetchAulas = async (fetchInfo, successCallback, failureCallback) => {
   }
 };
 
-const atualizarAgenda = async () => {
-  if (!confirm('Deseja gerar/atualizar a agenda para as próximas 4 semanas? As aulas já existentes não serão duplicadas.')) {
+const atualizarAgenda = async () => { // Função renomeada
+  if (!confirm('Deseja gerar/atualizar a agenda para as próximas 4 semanas?')) {
     return;
   }
 
   try {
-    const response = await axios.post('/api/agenda/gerar-semana');
-    alert('Agenda atualizada com sucesso! O calendário será recarregado.');
-    console.log('Saída do comando:', response.data.output);
-
+    // URL da chamada axios corrigido
+    const response = await axios.post('/api/agenda/atualizar');
+    alert('Agenda atualizada com sucesso!');
     if (fullCalendar.value) {
       fullCalendar.value.getApi().refetchEvents();
     }
-
   } catch (error) {
     alert('Ocorreu um erro ao atualizar a agenda.');
-    console.error('Erro ao gerar agenda:', error);
+    console.error('Erro ao atualizar agenda:', error);
   }
 };
 
