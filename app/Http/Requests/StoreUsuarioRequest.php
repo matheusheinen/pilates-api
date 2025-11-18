@@ -22,23 +22,18 @@ class StoreUsuarioRequest extends FormRequest
      */
     public function rules(): array
     {
-
         return [
             'nome' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:usuarios',
+            // Ajuste: Garante min:8 no cadastro também
             'senha' => 'required|string|min:8',
-            // Regras do perfil do aluno (opcionais)
             'tipo' => ['nullable', Rule::in(['aluno', 'admin'])],
             'genero' => ['nullable', 'string', Rule::in(['masculino', 'feminino', 'outro'])],
             'data_nascimento' => 'nullable|date',
             'profissao' => 'nullable|string|max:255',
-            'cpf' => ['nullable', 'string', 'digits:11'],
+            'cpf' => ['nullable', 'string', 'digits:11'], // Confirma que recebe apenas números
             'celular' => 'nullable|string|max:20',
-            'altura' => 'nullable|numeric',
-            'peso' => 'nullable|numeric',
-            'queixa_principal' => 'nullable|string',
             'lateralidade' => ['nullable', 'string', Rule::in(['destro', 'canhoto'])],
-            'diagnostico_clinico' => 'nullable|string',
         ];
     }
 }

@@ -15,7 +15,7 @@ class Inscricao extends Model
         'usuario_id',
         'plano_id',
         'data_inicio',
-        'ativo',
+        'ativo' // ou 'status'
     ];
 
     public function usuario()
@@ -28,8 +28,12 @@ class Inscricao extends Model
         return $this->belongsTo(Plano::class);
     }
 
-    public function horariosAgenda()
+    /**
+     * Relacionamento Muitos-para-Muitos com HorarioAgenda.
+     */
+    public function horarios()
     {
-        return $this->hasMany(HorarioAgenda::class);
+        return $this->belongsToMany(HorarioAgenda::class, 'horario_inscricao', 'inscricao_id', 'horario_agenda_id')
+                    ->withTimestamps();
     }
 }

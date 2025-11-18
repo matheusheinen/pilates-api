@@ -23,9 +23,6 @@ class Usuario extends Authenticatable
         'data_nascimento',
         'profissao',
         'celular',
-        'altura',
-        'peso',
-        'queixa_principal',
         'lateralidade',
     ];
 

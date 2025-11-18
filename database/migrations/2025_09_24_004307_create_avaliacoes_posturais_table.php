@@ -15,7 +15,11 @@ return new class extends Migration
         $table->id();
         $table->foreignId('usuario_id')->constrained('usuarios')->onDelete('cascade');
         $table->date('data_avaliacao');
-        
+        $table->decimal('altura', 3, 2)->nullable();
+        $table->decimal('peso', 5, 2)->nullable();
+        $table->text('queixa_principal')->nullable();
+        $table->text('diagnostico_clinico')->nullable();
+
         // --- VISTA ANTERIOR ---
         $table->string('anterior_cabeca')->nullable();
         $table->string('anterior_ombros_altura')->nullable();
@@ -50,8 +54,9 @@ return new class extends Migration
         $table->string('lateral_pelve')->nullable();
         $table->string('lateral_quadril')->nullable();
         $table->string('lateral_joelho')->nullable();
-        
+
         $table->json('anexos')->nullable();
+        $table->text('observacoes')->nullable();
         $table->timestamps();
         });
     }

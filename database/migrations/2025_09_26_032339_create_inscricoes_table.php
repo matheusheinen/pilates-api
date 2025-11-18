@@ -6,26 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('inscricoes', function (Blueprint $table) {
             $table->id();
+            // Garante que se o usuário for deletado, a inscrição também seja
             $table->foreignId('usuario_id')->constrained('usuarios')->onDelete('cascade');
             $table->foreignId('plano_id')->constrained('planos')->onDelete('cascade');
+
             $table->date('data_inicio');
-            $table->boolean('ativo')->default(true);
+
+            // Mudamos de boolean('ativo') para string('status') para suportar 'trancada', 'cancelada', etc.
+            $table->string('status')->default('ativa');
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('inscricaos');
+        Schema::dropIfExists('inscricoes');
     }
 };

@@ -1,18 +1,20 @@
 <template>
   <div class="bg-[#151515] p-6 rounded-xl text-white">
     <h3 class="text-lg font-semibold">Gestão de Horários da Agenda</h3>
-    <p class="text-[#a0a0a0] mb-6">Defina todos os horários padrão em que o estúdio oferece aulas.</p>
+    <p class="text-[#a0a0a0] mb-6">Defina os horários padrão e quantas vagas cada um possui.</p>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div class="lg:col-span-1 bg-[#242424] p-6 rounded-lg self-start">
+      <div class="lg:col-span-1 bg-[#242424] p-6 rounded-lg self-start border border-[#333]">
         <form @submit.prevent="adicionarHorario" class="space-y-4">
           <h4 class="font-semibold text-white border-b border-gray-700 pb-2 mb-4">Adicionar Novo Horário</h4>
 
-          <div v-if="mensagemErro" class="text-red-400 text-sm">{{ mensagemErro }}</div>
+          <div v-if="mensagemErro" class="p-3 bg-red-900/50 border border-red-800 text-red-200 rounded text-sm">
+             {{ mensagemErro }}
+          </div>
 
           <div>
-            <label class="text-xs text-gray-400">Dia da Semana</label>
-            <select v-model="novoHorario.dia_semana" class="form-input mt-1">
+            <label class="block text-xs text-gray-400 mb-1">Dia da Semana</label>
+            <select v-model="novoHorario.dia_semana" class="w-full bg-[#1e1e1e] border border-[#444] text-white rounded p-2 text-sm focus:border-[#009088] focus:ring-1 focus:ring-[#009088] outline-none">
               <option value="1">Segunda-feira</option>
               <option value="2">Terça-feira</option>
               <option value="3">Quarta-feira</option>
@@ -23,37 +25,92 @@
           </div>
 
           <div>
-            <label class="text-xs text-gray-400">Horário de Início</label>
-            <input v-model="novoHorario.horario_inicio" type="time" step="1800" class="form-input mt-1">
+            <label class="block text-xs text-gray-400 mb-1">Horário de Início</label>
+            <input
+              v-model="novoHorario.horario_inicio"
+              type="time"
+              class="w-full bg-[#1e1e1e] border border-[#444] text-white rounded p-2 text-sm focus:border-[#009088] focus:ring-1 focus:ring-[#009088] outline-none"
+            >
           </div>
 
-          <div>
-            <label class="text-xs text-gray-400">Duração (minutos)</label>
-            <input v-model="novoHorario.duracao_minutos" type="number" step="5" min="30" class="form-input mt-1">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Duração (min)</label>
+              <input
+                v-model="novoHorario.duracao_minutos"
+                type="number"
+                step="5"
+                min="10"
+                class="w-full bg-[#1e1e1e] border border-[#444] text-white rounded p-2 text-sm focus:border-[#009088] focus:ring-1 focus:ring-[#009088] outline-none"
+              >
+            </div>
+
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Total de Vagas</label>
+              <input
+                v-model="novoHorario.vagas_totais"
+                type="number"
+                min="1"
+                max="10"
+                class="w-full bg-[#1e1e1e] border border-[#444] text-white rounded p-2 text-sm focus:border-[#009088] focus:ring-1 focus:ring-[#009088] outline-none"
+              >
+            </div>
           </div>
 
-          <button type="submit" class="w-full py-2 rounded-lg bg-teal-700 hover:bg-teal-600 font-semibold transition-colors">
-            Adicionar Horário
+          <button
+            type="submit"
+            class="w-full bg-[#009088] hover:bg-[#007972] text-white font-medium py-2 px-4 rounded transition duration-200 mt-4 shadow-lg flex justify-center items-center gap-2">
+            <span>+</span> Adicionar Horário
           </button>
         </form>
       </div>
 
       <div class="lg:col-span-2">
-        <h4 class="font-semibold text-white mb-4">Horários Cadastrados</h4>
-        <div class="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-          <div v-if="horarios.length === 0" class="text-center py-8 text-[#a0a0a0]">
-            Nenhum horário cadastrado.
+        <div class="bg-[#242424] rounded-lg border border-[#333] overflow-hidden">
+          <div v-if="horarios.length === 0" class="p-8 text-center text-gray-500">
+            Nenhum horário cadastrado ainda.
           </div>
-          <div v-for="horario in horarios" :key="horario.id" class="bg-[#242424] p-3 rounded-lg flex justify-between items-center">
-            <div>
-              <p class="font-medium">{{ formatarDiaSemana(horario.dia_semana) }} - {{ horario.horario_inicio.substring(0, 5) }}</p>
-              <p :class="['text-sm', horario.inscricao ? 'text-green-400' : 'text-yellow-400']">
-                {{ horario.inscricao ? `Ocupado por: ${horario.inscricao.usuario.nome}` : 'Livre' }}
-              </p>
+
+          <div v-else class="divide-y divide-[#333]">
+            <div class="grid grid-cols-12 gap-4 p-3 bg-[#2a2a2a] text-xs text-gray-400 font-medium uppercase tracking-wider">
+               <div class="col-span-3">Dia</div>
+               <div class="col-span-2">Início</div>
+               <div class="col-span-2">Duração</div>
+               <div class="col-span-2">Vagas</div>
+               <div class="col-span-3 text-right">Ações</div>
             </div>
-            <button @click="removerHorario(horario.id)" class="text-red-500 hover:text-red-400 p-1 rounded-full hover:bg-red-500/10 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>
+
+            <div v-for="horario in horarios" :key="horario.id" class="grid grid-cols-12 gap-4 p-4 items-center hover:bg-[#2b2b2b] transition duration-150 text-sm">
+
+              <div class="col-span-3 font-medium text-white">
+                {{ formatarDiaSemana(horario.dia_semana) }}
+              </div>
+
+              <div class="col-span-2 text-gray-300 font-mono">
+                {{ horario.horario_inicio.substring(0, 5) }}
+              </div>
+
+              <div class="col-span-2 text-gray-400">
+                {{ horario.duracao_minutos }} min
+              </div>
+
+              <div class="col-span-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/30 text-blue-200 border border-blue-800">
+                   {{ horario.inscricoes_count || 0 }} / {{ horario.vagas_totais }}
+                </span>
+              </div>
+
+              <div class="col-span-3 text-right">
+                 <button
+                    @click="removerHorario(horario.id)"
+                    class="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1.5 rounded transition"
+                    title="Remover Horário">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                 </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -66,12 +123,15 @@ import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
 
 const horarios = ref([]);
+const mensagemErro = ref('');
+
+// Objeto reativo do formulário
 const novoHorario = reactive({
   dia_semana: '1',
   horario_inicio: '08:00',
   duracao_minutos: 50,
+  vagas_totais: 3 // Valor padrão inicial
 });
-const mensagemErro = ref('');
 
 const fetchHorarios = async () => {
   try {
@@ -84,34 +144,45 @@ const fetchHorarios = async () => {
 
 const adicionarHorario = async () => {
   mensagemErro.value = '';
+
+  // Validação simples no front antes de enviar
+  if (novoHorario.vagas_totais < 1) {
+      mensagemErro.value = "O número de vagas deve ser pelo menos 1.";
+      return;
+  }
+
   try {
     await axios.post('/api/horarios-agenda', novoHorario);
     await fetchHorarios();
+    // Resetar apenas horário para facilitar cadastro em sequência, mantém dia e vagas
+    // novoHorario.horario_inicio = '';
+    alert("Horário cadastrado com sucesso!");
   } catch (error) {
-    mensagemErro.value = error.response?.data?.message || "Erro ao adicionar horário.";
-  }
-};
-
-const removerHorario = async (id) => {
-  if (confirm('Tem certeza que deseja remover este horário padrão?')) {
-    try {
-      await axios.delete(`/api/horarios-agenda/${id}`);
-      await fetchHorarios();
-    } catch (error) {
-      alert(error.response?.data?.message || "Não foi possível remover o horário.");
+    if (error.response && error.response.data && error.response.data.message) {
+        mensagemErro.value = error.response.data.message;
+    } else {
+        mensagemErro.value = "Erro ao adicionar horário. Verifique os dados.";
     }
   }
 };
 
-const formatarDiaSemana = (dia) => {
-  return ['','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'][dia] || 'Inválido';
+const removerHorario = async (id) => {
+  if (!confirm('Tem certeza que deseja remover este horário?')) return;
+
+  try {
+    await axios.delete(`/api/horarios-agenda/${id}`);
+    await fetchHorarios();
+  } catch (error) {
+    alert(error.response?.data?.message || "Não foi possível remover o horário.");
+  }
 };
 
-onMounted(fetchHorarios);
-</script>
+const formatarDiaSemana = (dia) => {
+  const dias = ['','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'];
+  return dias[dia] || dia;
+};
 
-<style>
-.form-input {
-  @apply w-full p-2 rounded-lg bg-[#0f1616] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600;
-}
-</style>
+onMounted(() => {
+  fetchHorarios();
+});
+</script>

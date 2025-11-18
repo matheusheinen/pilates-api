@@ -16,6 +16,10 @@ class AvaliacaoPostural extends Model
 
     protected $fillable = [
         'usuario_id',
+        'altura',
+        'peso',
+        'queixa_principal',
+        'diagnostico_clinico',
         'data_avaliacao',
         'anterior_cabeca',
         'anterior_ombros_altura',
@@ -46,7 +50,8 @@ class AvaliacaoPostural extends Model
         'lateral_pelve',
         'lateral_quadril',
         'lateral_joelho',
-        'anexos', 
+        'anexos',
+        'observacoes'
     ];
 
     protected $casts = [

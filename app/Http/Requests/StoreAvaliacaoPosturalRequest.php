@@ -11,7 +11,7 @@ class StoreAvaliacaoPosturalRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -23,6 +23,10 @@ class StoreAvaliacaoPosturalRequest extends FormRequest
     {
         return [
         'usuario_id' => 'required|integer|exists:usuarios,id',
+        'altura' => 'nullable|numeric',
+        'peso' => 'nullable|numeric',
+        'queixa_principal' => 'nullable|string',
+        'diagnostico_clinico' => 'nullable|string',
         'data_avaliacao' => 'required|date',
         'anterior_cabeca' => 'required|string',
         'anterior_ombros_altura' => 'required|string',
@@ -54,6 +58,7 @@ class StoreAvaliacaoPosturalRequest extends FormRequest
         'lateral_quadril' => 'required|string',
         'lateral_joelho' => 'required|string',
         'anexos' => 'nullable|array',
+        'observacoes' => 'nullable|string',
         ];
     }
 }

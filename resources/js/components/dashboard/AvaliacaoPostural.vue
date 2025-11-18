@@ -20,6 +20,30 @@
 
     <form @submit.prevent="salvarAvaliacao" class="space-y-8">
 
+      <fieldset class="form-section border-teal-900/50">
+          <legend class="form-legend text-teal-300">Dados Clínicos Atuais</legend>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+              <div class="form-group">
+                  <label class="form-label">Peso (kg)</label>
+                  <input v-model="ficha.peso" type="number" step="0.1" class="form-input" placeholder="Ex: 70.5">
+              </div>
+              <div class="form-group">
+                  <label class="form-label">Altura (m)</label>
+                  <input v-model="ficha.altura" type="number" step="0.01" class="form-input" placeholder="Ex: 1.75">
+              </div>
+          </div>
+          <div class="grid grid-cols-1 gap-4">
+              <div class="form-group">
+                  <label class="form-label">Queixa Principal / Objetivo</label>
+                  <textarea v-model="ficha.queixa_principal" rows="2" class="form-input" placeholder="Descreva a dor ou objetivo atual do aluno..."></textarea>
+              </div>
+              <div class="form-group">
+                  <label class="form-label">Diagnóstico Clínico / Patologia</label>
+                  <textarea v-model="ficha.diagnostico_clinico" rows="2" class="form-input" placeholder="Ex: Hérnia de Disco L4-L5, Escoliose, etc."></textarea>
+              </div>
+          </div>
+      </fieldset>
+
       <div class="form-grid-4-cols !gap-y-4">
             <div class="form-group">
               <label class="form-label">Data da Avaliação *</label>
@@ -38,9 +62,9 @@
             <div v-if="ficha.caminho_anexo && !selectedFile" class="text-xs text-gray-400 mt-1">
                 Anexo existente: <a :href="`/storage/${ficha.caminho_anexo.replace('public/', '')}`" target="_blank" class="text-teal-400 hover:underline">{{ ficha.caminho_anexo.split('/').pop() }}</a>
                 <button type="button" @click="removerAnexoExistente" class="ml-2 text-red-500 hover:text-red-400 text-xs">(Remover)</button>
-             </div>
+              </div>
           </div>
-          </div>
+      </div>
 
 
       <fieldset class="form-section">
@@ -90,6 +114,17 @@
         </div>
       </fieldset>
 
+      <fieldset class="form-section">
+        <legend class="form-legend">Observações</legend>
+        <div class="form-grid-1-cols">
+          <div class="form-group">
+            <label for="observacoes" class="form-label">Observações Adicionais</label>
+            <textarea id="observacoes" v-model="ficha.observacoes" rows="4" class="form-input !min-h-[100px]"></textarea>
+            <span class="form-hint">Observações gerais, feedback do aluno, etc. (Opcional)</span>
+          </div>
+        </div>
+      </fieldset>
+
       <div class="pt-4 flex justify-end">
         <button type="submit" :disabled="saving" class="w-full sm:w-auto px-6 py-2 rounded-lg bg-teal-700 hover:bg-teal-600 font-semibold transition-colors disabled:opacity-50">
           {{ saving ? 'Salvando...' : 'Salvar Avaliação' }}
@@ -102,6 +137,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
+import { useRoute, useRouter } from 'vue-router';
 
 const props = defineProps({
   id: {
@@ -110,12 +146,23 @@ const props = defineProps({
   }
 });
 
+const route = useRoute();
+const router = useRouter();
+
 const loading = ref(true);
-const saving = ref(false); // Novo estado para controle do botão
+const saving = ref(false);
 const cliente = ref({});
-const ficha = reactive({ // Inicializa todos os campos para evitar erros de undefined
+
+// Reactive Object atualizado com os novos campos clínicos
+const ficha = reactive({
   usuario_id: props.id,
-  data_avaliacao: new Date().toISOString().split('T')[0], // Data de hoje por padrão
+  data_avaliacao: new Date().toISOString().split('T')[0],
+  // Campos Clínicos Novos
+  peso: null,
+  altura: null,
+  queixa_principal: null,
+  diagnostico_clinico: null,
+  // Campos de Avaliação Visual
   anterior_cabeca: null, anterior_ombros_altura: null, anterior_maos_altura: null,
   anterior_tronco_rotacao: null, anterior_angulo_tales: null, anterior_cicatriz_umbilical: null,
   anterior_iliacas_altura: null, anterior_joelhos: null, anterior_tornozelos: null, anterior_pes: null,
@@ -125,77 +172,61 @@ const ficha = reactive({ // Inicializa todos os campos para evitar erros de unde
   lateral_cabeca: null, lateral_cervical: null, lateral_ombro: null, lateral_membro_superior: null,
   lateral_toracica: null, lateral_tronco_rotacao: null, lateral_abdomen: null, lateral_lombar: null,
   lateral_pelve: null, lateral_quadril: null, lateral_joelho: null,
-  caminho_anexo: null // Campo para armazenar o caminho do anexo existente
+  caminho_anexo: null,
+  observacoes: null
 });
 
-// --- NOVO REF PARA O ARQUIVO ---
 const selectedFile = ref(null);
-// ------------------------------
 const successMessage = ref('');
 const errorMessage = ref('');
 
-// --- NOVA FUNÇÃO PARA CAPTURAR O ARQUIVO ---
 const handleFileChange = (event) => {
   selectedFile.value = event.target.files[0] || null;
-  // Limpa o caminho do anexo existente se um novo arquivo for selecionado
   if (selectedFile.value) {
-     ficha.caminho_anexo = null;
+      ficha.caminho_anexo = null;
   }
 };
-// ----------------------------------------
 
 const removerAnexoExistente = async () => {
     if (confirm('Tem certeza que deseja remover o anexo existente? Esta ação não pode ser desfeita.')) {
-        // Aqui você precisaria de uma rota no backend para remover o arquivo fisicamente
-        // e limpar o campo `caminho_anexo` no banco.
-        // Por ora, vamos apenas limpar visualmente e preparar para salvar sem ele.
-        ficha.caminho_anexo = null;
-        // Idealmente, chame uma API para deletar o arquivo e atualizar o BD aqui
-        // Ex: await axios.delete(`/api/avaliacoes-posturais/${ficha.id}/anexo`);
-        alert('Anexo removido (visualmente). Salve a ficha para confirmar a remoção no servidor.');
+      ficha.caminho_anexo = null;
+      alert('Anexo removido (visualmente). Salve a ficha para confirmar a remoção no servidor.');
     }
 };
-
 
 const fetchAvaliacao = async () => {
   loading.value = true;
   successMessage.value = '';
   errorMessage.value = '';
   try {
-    // Busca os dados do cliente para exibir o nome
     const clienteResponse = await axios.get(`/api/usuarios/${props.id}`);
     cliente.value = clienteResponse.data;
 
-    // Busca a avaliação postural MAIS RECENTE do usuário
-    // O ideal é ter uma rota específica para isso no backend, ex: /api/usuarios/{id}/avaliacao-postural/latest
-    // Por enquanto, vamos buscar todas e pegar a primeira (assumindo que o backend ordena por data desc)
-    // OU melhor, vamos adaptar a rota index para aceitar usuario_id e ordenar
-    const avaliacaoResponse = await axios.get(`/api/avaliacoes-posturais?usuario_id=${props.id}&latest=true`); // Adicionei parâmetros
+    // Busca se já existe uma avaliação para editar OU a última para usar de base
+    // Ajuste aqui conforme sua lógica de API (se é edição ou criação)
+    const avaliacaoResponse = await axios.get(`/api/avaliacoes-posturais?usuario_id=${props.id}&latest=true`);
 
     if (avaliacaoResponse.data) {
-        // Mescla os dados recebidos com a estrutura inicial da ficha
         Object.keys(ficha).forEach(key => {
             if (avaliacaoResponse.data[key] !== undefined) {
-                 ficha[key] = avaliacaoResponse.data[key];
+                ficha[key] = avaliacaoResponse.data[key];
             }
         });
-        // Garante que o ID da avaliação (se existir) é mantido
+        // Se a API retornou um ID, significa que estamos EDITANDO uma existente.
+        // Se a intenção for sempre criar nova, você deve limpar o ID aqui.
         if (avaliacaoResponse.data.id) {
-             ficha.id = avaliacaoResponse.data.id;
+            ficha.id = avaliacaoResponse.data.id;
         }
     }
-    // Garante que o usuario_id está sempre correto
-    ficha.usuario_id = props.id;
-     // Garante que a data está no formato YYYY-MM-DD se existir, senão usa hoje
-    ficha.data_avaliacao = ficha.data_avaliacao ? ficha.data_avaliacao.split('T')[0] : new Date().toISOString().split('T')[0];
 
+    ficha.usuario_id = props.id;
+    ficha.data_avaliacao = ficha.data_avaliacao ? ficha.data_avaliacao.split('T')[0] : new Date().toISOString().split('T')[0];
 
   } catch (error) {
     if (error.response && error.response.status !== 404) {
       errorMessage.value = "Erro ao carregar dados da avaliação.";
       console.error("Erro ao carregar dados:", error);
     } else {
-      // Se der 404 (não encontrado), é a primeira avaliação, o que é normal.
       console.log("Nenhuma avaliação anterior encontrada para este usuário.");
     }
   } finally {
@@ -203,39 +234,29 @@ const fetchAvaliacao = async () => {
   }
 };
 
-// --- FUNÇÃO salvarAvaliacao MODIFICADA ---
 const salvarAvaliacao = async () => {
-  saving.value = true; // Inicia o estado de salvamento
+  saving.value = true;
   successMessage.value = '';
   errorMessage.value = '';
 
-  // 1. Criar um objeto FormData
   const dataToSubmit = new FormData();
 
-  // 2. Adicionar todos os campos da 'ficha' reativa
   Object.keys(ficha).forEach(key => {
-    // Não envia 'id' ou objetos complexos via FormData diretamente
     if (key !== 'id' && typeof ficha[key] !== 'object' || ficha[key] === null) {
-      dataToSubmit.append(key, ficha[key] ?? ''); // Envia string vazia se for null/undefined
+      dataToSubmit.append(key, ficha[key] ?? '');
     }
   });
 
-  // 3. Adicionar o arquivo NOVO se ele foi selecionado
   if (selectedFile.value) {
-    // 'anexo_exame' será o nome do campo no backend
     dataToSubmit.append('anexo_exame', selectedFile.value);
   }
-   // 3.1 Adicionar um marcador se o anexo existente deve ser removido
-  else if (ficha.caminho_anexo === null && ficha.id) { // Só faz sentido se a ficha já existe e o caminho foi limpo
+  else if (ficha.caminho_anexo === null && ficha.id) {
       dataToSubmit.append('remover_anexo', 'true');
   }
 
-
   try {
     let response;
-    // Se a ficha já tem ID, usa PUT para atualizar, senão usa POST para criar
     if (ficha.id) {
-        // Laravel não suporta PUT com FormData diretamente, então usamos POST com _method=PUT
         dataToSubmit.append('_method', 'PUT');
         response = await axios.post(`/api/avaliacoes-posturais/${ficha.id}`, dataToSubmit, {
             headers: { 'Content-Type': 'multipart/form-data' }
@@ -244,53 +265,44 @@ const salvarAvaliacao = async () => {
         response = await axios.post('/api/avaliacoes-posturais', dataToSubmit, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        // Atualiza o ID da ficha após criar
         ficha.id = response.data.id;
     }
 
-    // Atualiza o caminho do anexo na ficha local se um novo foi salvo ou se foi removido
     ficha.caminho_anexo = response.data.caminho_anexo || null;
-    selectedFile.value = null; // Limpa o arquivo selecionado após o envio
+    selectedFile.value = null;
 
     successMessage.value = 'Ficha de avaliação salva com sucesso!';
 
+    setTimeout(() => {
+        router.push({ name: 'detalhes-cliente', params: { id: props.id } });
+    }, 2000);
+
   } catch (error) {
      if (error.response && error.response.data.errors) {
-      const validationErrors = error.response.data.errors;
-      const firstErrorKey = Object.keys(validationErrors)[0];
-      errorMessage.value = validationErrors[firstErrorKey][0];
-    } else {
-       errorMessage.value = "Ocorreu um erro ao salvar a ficha.";
-    }
+       const validationErrors = error.response.data.errors;
+       const firstErrorKey = Object.keys(validationErrors)[0];
+       errorMessage.value = validationErrors[firstErrorKey][0];
+     } else {
+        errorMessage.value = "Ocorreu um erro ao salvar a ficha.";
+     }
     console.error("Erro ao salvar avaliação:", error.response?.data || error);
   } finally {
-      saving.value = false; // Termina o estado de salvamento
+      saving.value = false;
   }
 };
-// ----------------------------------------
 
 onMounted(fetchAvaliacao);
 </script>
 
 <style>
-/* Estilos podem ser os mesmos ou ajustados conforme necessário */
 .form-section { @apply border border-gray-700 rounded-lg p-4 pt-2; }
 .form-legend { @apply px-2 text-sm font-semibold text-teal-400 -ml-2; }
-
-/* Grade de 2 colunas (usada para Data/Anexo) */
 .form-grid-4-cols { @apply grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8; }
-
-/* NOVA GRADE: Grade de 1 coluna (usada para as Vistas) */
-.form-grid-1-col { @apply grid grid-cols-1 gap-x-8 gap-y-6; } /* Adiciona gap-y-6 para espaçamento vertical */
-
+.form-grid-1-col { @apply grid grid-cols-1 gap-x-8 gap-y-6; }
 .form-group { @apply flex flex-col; }
 .form-label { @apply text-sm font-medium text-gray-300 mb-2; }
-
-/* Campos de Rádio Maiores */
 .radio-group { @apply flex flex-wrap gap-x-6 gap-y-3 items-center bg-[#0f1616] p-4 rounded-lg min-h-[60px]; }
 .radio-group label { @apply flex items-center text-sm cursor-pointer whitespace-nowrap; }
 .form-radio { @apply w-5 h-5 text-teal-600 bg-gray-700 border-gray-600 focus:ring-teal-500 focus:ring-2 mr-2; }
-
-/* Inputs Maiores (Data, Anexo) */
 .form-input { @apply w-full p-3 rounded-lg bg-[#0f1616] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600; }
 </style>

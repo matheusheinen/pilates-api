@@ -27,11 +27,8 @@ return new class extends Migration
         $table->date('data_nascimento')->nullable();
         $table->string('profissao')->nullable();
         $table->string('celular')->nullable();
-        $table->decimal('altura', 3, 2)->nullable();
-        $table->decimal('peso', 5, 2)->nullable();
-        $table->text('queixa_principal')->nullable();
         $table->string('lateralidade')->nullable();
-        $table->text('diagnostico_clinico')->nullable();
+
         });
     }
 

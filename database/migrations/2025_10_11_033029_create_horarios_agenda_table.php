@@ -6,28 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
-{
-    Schema::create('horarios_agenda', function (Blueprint $table) {
-        $table->id();
-        $table->integer('dia_semana'); // 1=Seg, 2=Ter, ...
-        $table->time('horario_inicio');
-        $table->integer('duracao_minutos')->default(50);
-        $table->foreignId('inscricao_id')->nullable()->constrained('inscricoes')->onDelete('set null');
-        $table->string('status')->default('ativo')->after('inscricao_id');
+    {
+        // 1. Tabela de Horários (Template da Agenda)
+        Schema::create('horarios_agenda', function (Blueprint $table) {
+            $table->id();
+            $table->integer('dia_semana'); // 1 = Segunda, 2 = Terça...
+            $table->time('horario_inicio');
+            $table->integer('duracao_minutos')->default(50);
 
-        $table->timestamps();
-    });
-}
+            // Limite de alunos neste horário (Ex: 3 vagas)
+            $table->integer('vagas_totais')->default(3);
 
-    /**
-     * Reverse the migrations.
-     */
+            $table->string('status')->default('ativo'); // ativo/inativo
+            $table->timestamps();
+        });
+
+
+    }
+
     public function down(): void
     {
+        Schema::dropIfExists('horario_inscricao');
         Schema::dropIfExists('horarios_agenda');
     }
 };

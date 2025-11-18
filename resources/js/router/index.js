@@ -11,6 +11,11 @@ import HorariosAgenda from '../components/dashboard/HorariosAgenda.vue';
 import Clientes from '../components/dashboard/Clientes.vue';
 import DetalhesCliente from '../components/dashboard/DetalhesCliente.vue';
 import AvaliacaoPostural from '../components/dashboard/AvaliacaoPostural.vue';
+import EditarCliente from '../components/dashboard/EditarCliente.vue';
+import VisualizarAvaliacao from '../components/dashboard/VisualizarAvaliacao.vue';
+import Matricula from '../components/dashboard/Matricula.vue'; // <--- Certifique-se de importar
+
+import Planos from '../components/dashboard/Planos.vue';
 
 const routes = [
     { path: '/login', name: 'login', component: Login },
@@ -24,6 +29,7 @@ const routes = [
         children: [
             { path: 'agenda', name: 'dashboard-agenda', component: Agenda },
             { path: 'horarios', name: 'dashboard-horarios', component: HorariosAgenda },
+            { path: 'planos', name: 'Planos', component: Planos },
             { path: 'clientes', name: 'dashboard-clientes', component: Clientes },
             {
                 path: 'clientes/:id',
@@ -36,6 +42,24 @@ const routes = [
                 name: 'avaliacao-postural',
                 component: AvaliacaoPostural,
                 props: true
+            },
+            {
+                path: 'clientes/:id/editar',
+                name: 'EditarCliente',
+                component: EditarCliente,
+                props: true
+            },
+            {
+                path: 'avaliacoes/:id/visualizar',
+                name: 'VisualizarAvaliacao',
+                component: VisualizarAvaliacao,
+                props: true
+            }, // <--- AQUI ESTAVA FALTANDO A VÍRGULA
+            {
+                path: 'clientes/:id/matricula',
+                name: 'matricula',
+                component: Matricula,
+                props: true
             }
         ]
     },
@@ -46,7 +70,6 @@ const router = createRouter({
     routes,
 });
 
-// A guarda de rota permanece a mesma
 router.beforeEach((to, from, next) => {
   const isLoggedIn = !!localStorage.getItem('authToken');
   if (to.meta.requiresAuth && !isLoggedIn) {

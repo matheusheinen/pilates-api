@@ -4,94 +4,100 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInscricaoRequest;
-use App\Http\Requests\UpdateInscricaoRequest;
 use App\Models\Inscricao;
 use App\Models\HorarioAgenda;
+use App\Models\Plano;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 
 class InscricaoController extends Controller
 {
     /**
-     * Lista todas as inscrições.
+     * Lista todas as inscrições com seus relacionamentos.
      */
     public function index(): JsonResponse
     {
-        $inscricoes = Inscricao::with(['usuario', 'plano', 'horariosAgenda'])->get();
+        $inscricoes = Inscricao::with(['usuario', 'plano', 'horarios'])->get();
         return response()->json($inscricoes);
     }
 
     /**
-     * Cria uma nova inscrição e aloca os horários fixos para o aluno.
+     * Cria a matrícula validando plano e vagas.
      */
     public function store(StoreInscricaoRequest $request): JsonResponse
     {
-        $dadosValidados = $request->validated();
+        $dados = $request->validated();
+        $horariosIds = $dados['horarios_agenda_ids'];
 
-        // IDs dos horários que o aluno escolheu (ex: [1, 5, 12])
-        $horariosIds = $dadosValidados['horarios_agenda_ids'];
+        // 1. Validar Quantidade de Aulas do Plano
+        $plano = Plano::findOrFail($dados['plano_id']);
 
-        // 1. Verifica se todos os horários escolhidos estão realmente livres
-        $horariosOcupados = HorarioAgenda::whereIn('id', $horariosIds)->whereNotNull('inscricao_id')->count();
-
-        if ($horariosOcupados > 0) {
-            return response()->json(['message' => 'Um ou mais dos horários escolhidos já estão ocupados.'], 409); // Conflict
+        if (count($horariosIds) !== $plano->numero_aulas) {
+            return response()->json([
+                'message' => "O plano '{$plano->nome}' exige exatamente {$plano->numero_aulas} horários selecionados.",
+                'selecionados' => count($horariosIds)
+            ], 422);
         }
 
-        // 2. Usa uma transação para garantir a integridade dos dados
+        // 2. Verificar Disponibilidade de Vagas (Bloqueio de Concorrência)
+        // Carregamos os horários e contamos quantos alunos JÁ estão neles
+        foreach ($horariosIds as $id) {
+            $horario = HorarioAgenda::withCount('inscricoes')->find($id);
+
+            // Se inscritos >= vagas totais, bloqueia
+            if ($horario->inscricoes_count >= $horario->vagas_totais) {
+                return response()->json([
+                    'message' => "O horário de {$this->formatarDia($horario->dia_semana)} às {$this->formatarHora($horario->horario_inicio)} acabou de atingir o limite de {$horario->vagas_totais} alunos."
+                ], 409); // Conflict
+            }
+        }
+
+        // 3. Realizar a Matrícula (Transação)
         DB::beginTransaction();
         try {
-            // Cria a inscrição
+            // Cria o registro da inscrição
             $inscricao = Inscricao::create([
-                'usuario_id' => $dadosValidados['usuario_id'],
-                'plano_id' => $dadosValidados['plano_id'],
-                'data_inicio' => $dadosValidados['data_inicio'],
-                'status' => 'ativa',
+                'usuario_id' => $dados['usuario_id'],
+                'plano_id'   => $dados['plano_id'],
+                'data_inicio'=> $dados['data_inicio'],
+                'status'     => 'ativa',
             ]);
 
-            // Aloca os horários para esta nova inscrição
-            HorarioAgenda::whereIn('id', $horariosIds)->update(['inscricao_id' => $inscricao->id]);
+            // Vincula os horários na tabela pivô (horario_inscricao)
+            $inscricao->horarios()->attach($horariosIds);
 
-            DB::commit(); // Confirma as alterações
+            DB::commit();
 
-            // Retorna a inscrição completa com os horários associados
-            return response()->json($inscricao->load('horariosAgenda'), 201);
+            return response()->json($inscricao->load(['horarios', 'plano']), 201);
 
         } catch (\Exception $e) {
-            DB::rollBack(); // Desfaz tudo se algo der errado
-            return response()->json(['message' => 'Ocorreu um erro ao criar a inscrição.', 'error' => $e->getMessage()], 500);
+            DB::rollBack();
+            return response()->json(['message' => 'Erro ao realizar inscrição.', 'error' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Mostra os detalhes de uma inscrição específica.
-     */
     public function show(Inscricao $inscricao): JsonResponse
     {
-        return response()->json($inscricao->load(['usuario', 'plano', 'horariosAgenda']));
+        return response()->json($inscricao->load(['usuario', 'plano', 'horarios']));
     }
 
-    /**
-     * Atualiza uma inscrição.
-     */
-    public function update(UpdateInscricaoRequest $request, Inscricao $inscricao): JsonResponse
-    {
-        // Esta lógica pode ser expandida no futuro para permitir a troca de horários fixos
-        $inscricao->update($request->validated());
-        return response()->json($inscricao->load('horariosAgenda'));
-    }
-
-    /**
-     * "Apaga" uma inscrição (geralmente inativando-a).
-     */
     public function destroy(Inscricao $inscricao): JsonResponse
     {
-        // Libera os horários fixos que estavam associados a esta inscrição
-        HorarioAgenda::where('inscricao_id', $inscricao->id)->update(['inscricao_id' => null]);
-
-        // Inativa ou apaga a inscrição
-        $inscricao->update(['status' => 'inativa']); // ou $inscricao->delete();
+        // Remove os vínculos da tabela pivô automaticamente devido ao cascade no banco,
+        // mas podemos forçar o detach para garantir
+        $inscricao->horarios()->detach();
+        $inscricao->delete();
 
         return response()->json(null, 204);
+    }
+
+    // Auxiliares para mensagem de erro bonita
+    private function formatarDia($dia) {
+        $dias = [1=>'Segunda', 2=>'Terça', 3=>'Quarta', 4=>'Quinta', 5=>'Sexta', 6=>'Sábado', 7=>'Domingo'];
+        return $dias[$dia] ?? 'Dia inválido';
+    }
+
+    private function formatarHora($hora) {
+        return substr($hora, 0, 5);
     }
 }

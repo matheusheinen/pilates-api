@@ -2,30 +2,27 @@
 
 namespace App\Models;
 
- use Illuminate\Database\Eloquent\Factories\HasFactory;
- use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
- class HorarioAgenda extends Model
- {
-     use HasFactory;
+class HorarioAgenda extends Model
+{
+    use HasFactory;
 
-     /**
-      * O nome da tabela associada ao model.
-      *
-      * @var string
-      */
-     protected $table = 'horarios_agenda'; // <-- ADICIONE ESTA LINHA
+    protected $table = 'horarios_agenda';
 
-     protected $fillable = [
-            'dia_semana',
-            'horario_inicio',
-            'duracao_minutos',
-            'inscricao_id',
-            'status',
-     ];
+    protected $fillable = [
+        'dia_semana',
+        'horario_inicio',
+        'duracao_minutos',
+        'vagas_totais', // <--- CAMPO NOVO OBRIGATÓRIO
+        'status',
+    ];
 
-     public function inscricao()
-     {
-         return $this->belongsTo(Inscricao::class);
-     }
- }
+    // RELACIONAMENTO NOVO (Muitos para Muitos)
+    public function inscricoes()
+    {
+        return $this->belongsToMany(Inscricao::class, 'horario_inscricao', 'horario_agenda_id', 'inscricao_id')
+                    ->withTimestamps();
+    }
+}

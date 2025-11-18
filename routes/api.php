@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\AvaliacaoPosturalController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InscricaoController;
 use App\Http\Controllers\Api\HorarioAgendaController;
-use App\Models\HorarioAgenda;
+use App\Http\Controllers\Api\PlanoController;
 
 // --- Rotas Públicas ---
 // Estas rotas não requerem autenticação.
@@ -35,5 +35,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('inscricoes', InscricaoController::class);
     Route::apiResource('aulas', AulaController::class);
     Route::apiResource('horarios-agenda', HorarioAgendaController::class);
+    Route::apiResource('planos', PlanoController::class);
 });
 

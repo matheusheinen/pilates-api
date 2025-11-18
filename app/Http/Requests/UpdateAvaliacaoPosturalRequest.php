@@ -11,7 +11,7 @@ class UpdateAvaliacaoPosturalRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -22,6 +22,10 @@ class UpdateAvaliacaoPosturalRequest extends FormRequest
     public function rules(): array
     {
         return [
+        'altura' => 'nullable|numeric',
+        'peso' => 'nullable|numeric',
+        'queixa_principal' => 'nullable|string',
+        'diagnostico_clinico' => 'nullable|string',
         'data_avaliacao' => 'nullable|date',
         'anterior_cabeca' => 'nullable|string',
         'anterior_ombros_altura' => 'nullable|string',
@@ -53,6 +57,7 @@ class UpdateAvaliacaoPosturalRequest extends FormRequest
         'lateral_quadril' => 'nullable|string',
         'lateral_joelho' => 'nullable|string',
         'anexos' => 'nullable|array',
+        'observacoes' => 'nullable|string',
     ];
     }
 }
