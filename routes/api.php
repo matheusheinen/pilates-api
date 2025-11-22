@@ -25,7 +25,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    Route::get('/usuarios/{id}/avaliacoes', [UsuarioController::class, 'avaliacoesPosturais']);
+
     Route::get('/aulas/disponiveis', [AulaController::class, 'listarDisponiveis']);
+
+    Route::get('/aulas/calendario', [AulaController::class, 'listagemCalendario']);
 
     Route::post('/agenda/atualizar', [AulaController::class, 'atualizarAgenda']);
 

@@ -13,9 +13,12 @@ import DetalhesCliente from '../components/dashboard/DetalhesCliente.vue';
 import AvaliacaoPostural from '../components/dashboard/AvaliacaoPostural.vue';
 import EditarCliente from '../components/dashboard/EditarCliente.vue';
 import VisualizarAvaliacao from '../components/dashboard/VisualizarAvaliacao.vue';
-import Matricula from '../components/dashboard/Matricula.vue'; // <--- Certifique-se de importar
-
+import Matricula from '../components/dashboard/Matricula.vue';
 import Planos from '../components/dashboard/Planos.vue';
+import Inscricoes from '../components/dashboard/Inscricoes.vue';
+import EditarInscricao from '../components/dashboard/EditarInscricao.vue';
+
+// ------------------------------------------
 
 const routes = [
     { path: '/login', name: 'login', component: Login },
@@ -54,13 +57,27 @@ const routes = [
                 name: 'VisualizarAvaliacao',
                 component: VisualizarAvaliacao,
                 props: true
-            }, // <--- AQUI ESTAVA FALTANDO A VÍRGULA
+            },
             {
                 path: 'clientes/:id/matricula',
                 name: 'matricula',
                 component: Matricula,
                 props: true
+            },
+            {
+                // Rota de listagem (agora funciona com o filtro ?usuario_id=X)
+                path: 'inscricoes',
+                name: 'listagem-inscricoes',
+                component: Inscricoes // Componente de Listagem
+            },
+            {
+                // Rota de edição de um contrato específico
+                path: 'inscricoes/:id/editar',
+                name: 'editar-inscricao',
+                component: EditarInscricao, // Componente de Edição
+                props: true
             }
+
         ]
     },
 ];

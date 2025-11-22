@@ -4,20 +4,40 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\HorarioAgenda;
+use App\Models\HorarioAluno;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class HorarioAgendaController extends Controller
 {
-    public function index(): JsonResponse
+    public function index()
     {
-        // Retorna ordenado e com contagem de alunos
-        $horarios = HorarioAgenda::orderBy('dia_semana')
-            ->orderBy('horario_inicio')
-            ->withCount('inscricoes') // Importante para o front saber quantos alunos tem
-            ->get();
+        try {
+            // 1. A consulta busca apenas os horários ATIVOS (cadastrados pela professora)
+            $horarios = HorarioAgenda::where('status', 'ativo')
 
-        return response()->json($horarios);
+                // 2. Com o withCount, incluímos o campo 'ocupacao' (essencial para Matrícula.vue)
+                // O Vue ignora essa informação se for só para listagem simples.
+                ->withCount(['horariosAluno as ocupacao' => function ($query) {
+                    // Contamos apenas os vínculos ativos para determinar a vaga real
+                    $query->where('status', 'ativo');
+                }])
+
+                // 3. Ordenamos para a visualização correta na tela
+                ->orderBy('dia_semana')
+                ->orderBy('horario_inicio')
+                ->get();
+
+            // Retorna os dados no formato Resource Collection (com 'data')
+            return response()->json(['data' => $horarios]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erro interno do servidor ao carregar a agenda.',
+                'error_detail' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

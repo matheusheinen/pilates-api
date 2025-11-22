@@ -16,13 +16,30 @@
 
     <div v-if="showModal" class="modal-overlay" @click="showModal = false">
       <div class="modal-content" @click.stop>
-        <h4 class="font-bold text-xl mb-4">Detalhes da Aula</h4>
-        <div v-if="selectedEvent">
+        <h4 class="font-bold text-xl mb-4 text-teal-400">{{ eventTitle }}</h4>
+
+        <div v-if="selectedEventDetails" class="space-y-4">
           <p><strong>Início:</strong> {{ formatarData(selectedEvent.start) }}</p>
-          <p><strong>Fim:</strong> {{ formatarData(selectedEvent.end) }}</p>
-          <p><strong>Status:</strong> <span :class="statusClass(selectedEvent.extendedProps.status)">{{ selectedEvent.extendedProps.status }}</span></p>
-          <p v-if="selectedEvent.extendedProps.aluno"><strong>Aluno:</strong> {{ selectedEvent.extendedProps.aluno }}</p>
+          <p><strong>Duração:</strong> {{ selectedEvent.extendedProps.duration_minutes }} minutos</p>
+          <p><strong>Vagas:</strong> {{ selectedEventDetails.total_alunos }} / {{ selectedEventDetails.vagas_totais }}</p>
+
+          <h5 class="font-bold text-sm text-gray-400 border-b border-gray-600 pb-1 mt-4">
+              Alunos Agendados
+          </h5>
+
+          <ul class="list-none text-sm space-y-2 max-h-40 overflow-y-auto pr-2">
+            <li v-for="aluno in selectedEventDetails.alunos" :key="aluno.id_aula" class="flex justify-between items-center bg-[#1e1e1e] p-2 rounded-lg">
+                <span class="text-white">{{ aluno.nome }}</span>
+
+                <button
+                    @click.stop="cancelarAula(aluno.id_aula)"
+                    class="text-xs text-red-500 hover:text-red-400 bg-red-900/20 p-1 rounded-md transition duration-150">
+                    Cancelar Aula
+                </button>
+            </li>
+          </ul>
         </div>
+
         <button @click="showModal = false" class="mt-6 w-full py-2 rounded-lg bg-gray-600 hover:bg-gray-500 font-semibold">Fechar</button>
       </div>
     </div>
@@ -41,55 +58,84 @@ import { format } from 'date-fns';
 
 const showModal = ref(false);
 const selectedEvent = ref(null);
+const selectedEventDetails = ref(null); // Armazena os dados agregados (lista de alunos)
+const eventTitle = ref('');
 const fullCalendar = ref(null);
 
-const handleEventClick = (clickInfo) => {
-  selectedEvent.value = clickInfo.event;
-  showModal.value = true;
-};
-
+// --- 1. FUNÇÃO DE BUSCA DE EVENTOS (AGREGADA) ---
 const fetchAulas = async (fetchInfo, successCallback, failureCallback) => {
   try {
-    const response = await axios.get('/api/aulas', {
-      params: { mes: format(fetchInfo.start, 'yyyy-MM') }
+    // Chama o novo endpoint que faz a agregação no Backend
+    const response = await axios.get('/api/aulas/calendario', {
+      params: {
+        start: fetchInfo.startStr,
+        end: fetchInfo.endStr
+      }
     });
 
-    const events = response.data.map(aula => ({
-      id: aula.id,
-      title: aula.inscricao?.usuario ? aula.inscricao.usuario.nome : 'Disponível',
-      start: aula.data_hora_inicio,
-      end: new Date(new Date(aula.data_hora_inicio).getTime() + aula.duracao_minutos * 60000),
-      color: aula.inscricao ? '#009088' : '#4a5568',
-      extendedProps: {
-        status: aula.status,
-        aluno: aula.inscricao?.usuario?.nome || null,
-      }
-    }));
-    successCallback(events);
+    // O Backend já retorna os dados no formato FullCalendar (events)
+    successCallback(response.data);
+
   } catch (error) {
-    console.error('Erro ao buscar aulas:', error);
+    console.error('Erro ao buscar aulas para o calendário:', error);
     failureCallback(error);
   }
 };
 
-const atualizarAgenda = async () => { // Função renomeada
-  if (!confirm('Deseja gerar/atualizar a agenda para as próximas 4 semanas?')) {
+// --- 2. CLIQUE NO EVENTO (POPULA MODAL) ---
+const handleEventClick = (clickInfo) => {
+  selectedEvent.value = clickInfo.event;
+  selectedEventDetails.value = clickInfo.event.extendedProps;
+  eventTitle.value = clickInfo.event.title;
+  showModal.value = true;
+};
+
+// --- 3. BOTÃO DE ATUALIZAÇÃO MANUAL ---
+const atualizarAgenda = async () => {
+  if (!confirm('Deseja gerar/atualizar a agenda para as próximas 60 dias?')) {
     return;
   }
 
   try {
-    // URL da chamada axios corrigido
+    // Chama a rota API que executa o Artisan Command (agenda:atualizar)
     const response = await axios.post('/api/agenda/atualizar');
-    alert('Agenda atualizada com sucesso!');
+
+    alert('Agenda atualizada com sucesso! ' + response.data.message);
+
+    // Atualiza a visualização do calendário
     if (fullCalendar.value) {
       fullCalendar.value.getApi().refetchEvents();
     }
   } catch (error) {
-    alert('Ocorreu um erro ao atualizar a agenda.');
-    console.error('Erro ao atualizar agenda:', error);
+    alert(error.response?.data?.message || 'Ocorreu um erro ao atualizar a agenda.');
+    console.error('Erro ao atualizar agenda:', error.response?.data || error);
   }
 };
 
+// --- 4. FUNÇÃO DE CANCELAMENTO INDIVIDUAL ---
+const cancelarAula = async (aulaId) => {
+    if (!confirm(`Confirma o cancelamento da aula ID ${aulaId}?`)) return;
+
+    try {
+        // Implementar a rota DELETE no Backend (Ex: Route::delete('/api/aulas/{id}', ...))
+        // Esta rota deve mudar o status da Aula para 'cancelada' e talvez liberar a vaga para reposição.
+        const response = await axios.delete(`/api/aulas/${aulaId}`);
+
+        alert("Aula cancelada com sucesso!");
+        showModal.value = false;
+
+        // Refetch de eventos para atualizar a tela
+        if (fullCalendar.value) {
+            fullCalendar.value.getApi().refetchEvents();
+        }
+    } catch (error) {
+        alert(error.response?.data?.message || "Não foi possível cancelar a aula.");
+        console.error('Erro ao cancelar aula:', error);
+    }
+}
+
+
+// --- CONFIGURAÇÕES E HELPERS ---
 const calendarOptions = ref({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
   initialView: 'timeGridWeek',
@@ -98,26 +144,21 @@ const calendarOptions = ref({
     center: 'title',
     right: 'dayGridMonth,timeGridWeek,timeGridDay'
   },
-  // --- CORREÇÃO ADICIONADA AQUI ---
-  timeZone: 'local', // Diz ao calendário para usar o fuso horário do navegador
-  // --- FIM DA CORREÇÃO ---
+  timeZone: 'local',
   locale: ptBR,
   buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia' },
   allDaySlot: false,
   slotMinTime: "06:00:00",
   slotMaxTime: "22:00:00",
-  events: fetchAulas,
+  events: fetchAulas, // Usa o método de agregação
   eventClick: handleEventClick,
+  eventDisplay: 'block',
+  eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: false } // 10:00
 });
 
 const formatarData = (data) => {
   if (!data) return '';
   return format(new Date(data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-};
-const statusClass = (status) => {
-  if (status === 'agendada') return 'text-green-400';
-  if (status === 'disponivel') return 'text-yellow-400';
-  return 'text-gray-400';
 };
 </script>
 

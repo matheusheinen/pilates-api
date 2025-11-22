@@ -63,4 +63,18 @@ class UsuarioController extends Controller
         $usuario->delete();
         return response()->json(null, 204);
     }
+
+    public function avaliacoesPosturais($id)
+    {
+        // 1. Encontra o usuário
+        $usuario = Usuario::findOrFail($id);
+
+        // 2. Retorna a relação 'avaliacoesPosturais' ordenada pela data mais recente
+        $avaliacoes = $usuario->avaliacoesPosturais()
+                            ->orderBy('data_avaliacao', 'desc')
+                            ->get();
+
+        // O Frontend (DetalhesCliente.vue) espera a chave 'data' na resposta
+        return response()->json(['data' => $avaliacoes]);
+    }
 }

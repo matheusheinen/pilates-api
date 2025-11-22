@@ -20,16 +20,7 @@
           <input v-model="formData.nome" type="text" placeholder="Nome Completo *" required class="form-input">
           <input v-model="formData.email" type="email" placeholder="Email *" required class="form-input">
           <input v-model="formData.senha" type="password" placeholder="Senha *" required class="form-input">
-
-          <input
-            v-model="formData.celular"
-            @input="formatarCelular"
-            maxlength="15"
-            type="text"
-            placeholder="Celular (DDD) 99999-9999"
-            class="form-input"
-          >
-
+          <input v-model="formData.celular" type="text" placeholder="Celular *" required @input="formatarCelular" maxlength="15" class="form-input">
           <input v-model="formData.cpf" @input="formatarCPF" maxlength="14" type="text" placeholder="CPF" class="form-input">
           <input v-model="formData.profissao" type="text" placeholder="Profissão" class="form-input">
         </div>

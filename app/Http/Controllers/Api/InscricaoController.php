@@ -4,100 +4,132 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInscricaoRequest;
+use App\Http\Requests\UpdateInscricaoRequest;
 use App\Models\Inscricao;
+use App\Models\HorarioAluno;
 use App\Models\HorarioAgenda;
-use App\Models\Plano;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+
 
 class InscricaoController extends Controller
 {
     /**
      * Lista todas as inscrições com seus relacionamentos.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $inscricoes = Inscricao::with(['usuario', 'plano', 'horarios'])->get();
-        return response()->json($inscricoes);
+        $query = Inscricao::with(['usuario', 'plano']);
+
+        // Regra de Filtro: Se o botão "Ver Contratos" enviou o ID, filtra.
+        if ($request->has('usuario_id')) {
+            $query->where('usuario_id', $request->input('usuario_id'));
+        }
+
+        $inscricoes = $query->orderBy('data_inicio', 'desc')->get();
+        return response()->json(['data' => $inscricoes]);
     }
 
+    public function show($id): JsonResponse
+    {
+        // Carrega horários fixos e os dados da agenda (essencial para a tela de edição)
+        return response()->json(Inscricao::with(['usuario', 'plano', 'horariosAluno.agenda'])->findOrFail($id));
+    }
     /**
      * Cria a matrícula validando plano e vagas.
      */
     public function store(StoreInscricaoRequest $request): JsonResponse
     {
-        $dados = $request->validated();
-        $horariosIds = $dados['horarios_agenda_ids'];
+        $dadosValidados = $request->validated();
 
-        // 1. Validar Quantidade de Aulas do Plano
-        $plano = Plano::findOrFail($dados['plano_id']);
-
-        if (count($horariosIds) !== $plano->numero_aulas) {
-            return response()->json([
-                'message' => "O plano '{$plano->nome}' exige exatamente {$plano->numero_aulas} horários selecionados.",
-                'selecionados' => count($horariosIds)
-            ], 422);
-        }
-
-        // 2. Verificar Disponibilidade de Vagas (Bloqueio de Concorrência)
-        // Carregamos os horários e contamos quantos alunos JÁ estão neles
-        foreach ($horariosIds as $id) {
-            $horario = HorarioAgenda::withCount('inscricoes')->find($id);
-
-            // Se inscritos >= vagas totais, bloqueia
-            if ($horario->inscricoes_count >= $horario->vagas_totais) {
-                return response()->json([
-                    'message' => "O horário de {$this->formatarDia($horario->dia_semana)} às {$this->formatarHora($horario->horario_inicio)} acabou de atingir o limite de {$horario->vagas_totais} alunos."
-                ], 409); // Conflict
-            }
-        }
-
-        // 3. Realizar a Matrícula (Transação)
-        DB::beginTransaction();
         try {
-            // Cria o registro da inscrição
-            $inscricao = Inscricao::create([
-                'usuario_id' => $dados['usuario_id'],
-                'plano_id'   => $dados['plano_id'],
-                'data_inicio'=> $dados['data_inicio'],
-                'status'     => 'ativa',
-            ]);
+            $inscricao = DB::transaction(function () use ($dadosValidados) {
 
-            // Vincula os horários na tabela pivô (horario_inscricao)
-            $inscricao->horarios()->attach($horariosIds);
+                // 1. Cria o Contrato
+                $inscricao = Inscricao::create($dadosValidados);
 
-            DB::commit();
+                // 2. Reserva as Vagas (HorariosAluno) e Checagem de Capacidade
+                foreach ($dadosValidados['horarios_agenda_ids'] as $agendaId) {
 
-            return response()->json($inscricao->load(['horarios', 'plano']), 201);
+                    $horarioAgenda = HorarioAgenda::findOrFail($agendaId);
+                    $ocupacaoAtual = HorarioAluno::where('horario_agenda_id', $agendaId)->where('status', 'ativo')->count();
+
+                    if ($ocupacaoAtual >= $horarioAgenda->vagas_totais) {
+                        throw new \Exception("Vaga indisponível para o horário ID: {$agendaId}");
+                    }
+
+                    HorarioAluno::create([
+                        'inscricao_id' => $inscricao->id,
+                        'horario_agenda_id' => $agendaId,
+                        'status' => 'ativa'
+                    ]);
+                }
+
+                // 3. Geração Inicial de Aulas (Obrigatório, 60 dias)
+                $inscricao->gerarAulasFuturas(60);
+
+                return $inscricao;
+            });
+
+            return response()->json(['message' => 'Matrícula realizada e aulas geradas!', 'data' => $inscricao], 201);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Erro ao realizar inscrição.', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Falha na matrícula: ' . $e->getMessage()], 422);
         }
     }
 
-    public function show(Inscricao $inscricao): JsonResponse
+    public function update(UpdateInscricaoRequest $request, $id): JsonResponse
     {
-        return response()->json($inscricao->load(['usuario', 'plano', 'horarios']));
+        $inscricao = Inscricao::findOrFail($id);
+        $dadosValidados = $request->validated();
+        $novoStatus = $dadosValidados['status'];
+        $statusAnterior = $inscricao->status;
+
+        try {
+            DB::transaction(function () use ($inscricao, $dadosValidados, $novoStatus, $statusAnterior) {
+
+                // 1. LÓGICA DE CHECAGEM DE VAGA PARA REATIVAÇÃO (Se o Admin reativar)
+                if ($novoStatus === 'ativa' && $statusAnterior !== 'ativa') {
+                    $inscricao->load('horariosAluno.agenda');
+
+                    foreach ($inscricao->horariosAluno as $vinculo) {
+                        $ocupacaoAtual = HorarioAluno::where('horario_agenda_id', $vinculo->horario_agenda_id)->where('status', 'ativo')->count();
+
+                        if ($ocupacaoAtual >= $vinculo->agenda->vagas_totais) {
+                            // Se a turma estiver cheia, lança exceção e aborta
+                            throw new \Exception("Vaga indisponível para o horário {$this->formatarDia($vinculo->agenda->dia_semana)} às {$vinculo->agenda->horario_inicio}. Turma cheia.");
+                        }
+                    }
+                }
+
+                // 2. Atualiza o Contrato
+                $inscricao->update($dadosValidados);
+
+                // 3. Lógica de Inativação/Reativação de Vagas
+                if ($novoStatus === 'ativa') {
+                    $inscricao->horariosAluno()->update(['status' => 'ativo']); // Ativa os vínculos
+                } else {
+                    $inscricao->horariosAluno()->update(['status' => 'inativo']); // Libera as vagas
+                }
+
+                // 4. (Opcional) Chamar a geração de aulas para revalidar o calendário
+                $inscricao->gerarAulasFuturas(60);
+            });
+
+            return response()->json($inscricao->fresh(['usuario', 'plano']), 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Falha ao atualizar a inscrição. ' . $e->getMessage(),
+            ], 422);
+        }
     }
 
-    public function destroy(Inscricao $inscricao): JsonResponse
-    {
-        // Remove os vínculos da tabela pivô automaticamente devido ao cascade no banco,
-        // mas podemos forçar o detach para garantir
-        $inscricao->horarios()->detach();
-        $inscricao->delete();
-
-        return response()->json(null, 204);
-    }
-
-    // Auxiliares para mensagem de erro bonita
+    // Auxiliar para mensagem de erro bonita
     private function formatarDia($dia) {
         $dias = [1=>'Segunda', 2=>'Terça', 3=>'Quarta', 4=>'Quinta', 5=>'Sexta', 6=>'Sábado', 7=>'Domingo'];
         return $dias[$dia] ?? 'Dia inválido';
     }
-
-    private function formatarHora($hora) {
-        return substr($hora, 0, 5);
-    }
 }
+

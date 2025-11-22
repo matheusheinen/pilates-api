@@ -17,6 +17,13 @@ class Aula extends Model
      */
     protected $fillable = [
         'inscricao_id',
+
+        // --- CHAVES ADICIONADAS ---
+        'usuario_id',          // Atalho para o aluno (Performance)
+        'horario_aluno_id',    // O vínculo fixo (Vaga) que gerou esta aula
+        'horario_agenda_id',   // O slot fixo (Segunda 10h) que gerou esta aula
+        // --------------------------
+
         'data_hora_inicio',
         'duracao_minutos',
         'status',
@@ -24,8 +31,7 @@ class Aula extends Model
     ];
 
     /**
-     * Define os tipos de dados para os atributos, garantindo que 'data_hora_inicio'
-     * seja sempre um objeto Carbon para facilitar manipulações.
+     * Define os tipos de dados para os atributos.
      *
      * @var array<string, string>
      */
@@ -33,11 +39,38 @@ class Aula extends Model
         'data_hora_inicio' => 'datetime',
     ];
 
+
+    // --- RELACIONAMENTOS ---
+
     /**
-     * Define a relação: uma Aula pertence a uma Inscrição.
+     * O slot fixo da Agenda (Ex: A aula pertence ao horário Terça 10h da escola).
+     */
+    public function horarioAgenda(): BelongsTo
+    {
+        return $this->belongsTo(HorarioAgenda::class, 'horario_agenda_id');
+    }
+
+    /**
+     * O vínculo do aluno com o horário fixo (Ex: A aula nasceu do contrato de vaga do aluno A).
+     */
+    public function horarioAluno(): BelongsTo
+    {
+        return $this->belongsTo(HorarioAluno::class, 'horario_aluno_id');
+    }
+
+    /**
+     * O contrato principal (Inscrição).
      */
     public function inscricao(): BelongsTo
     {
-        return $this->belongsTo(Inscricao::class);
+        return $this->belongsTo(Inscricao::class, 'inscricao_id');
+    }
+
+    /**
+     * O Aluno (Atalho para performance, evita um JOIN extra).
+     */
+    public function usuario(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'usuario_id');
     }
 }

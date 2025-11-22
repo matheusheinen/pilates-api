@@ -37,7 +37,7 @@ class UpdateUsuarioRequest extends FormRequest
             'genero' => ['nullable', 'string', Rule::in(['masculino', 'feminino', 'outro'])],
             'data_nascimento' => 'nullable|date',
             'profissao' => 'nullable|string|max:255',
-            'celular' => 'nullable|string|max:20',
+            'celular' => 'required|string|min:10|max:20',
             'lateralidade' => ['nullable', 'string', Rule::in(['destro', 'canhoto'])],
         ];
     }

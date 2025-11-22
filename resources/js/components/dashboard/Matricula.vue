@@ -1,292 +1,303 @@
 <template>
-    <div class="bg-[#151515] min-h-screen text-white p-6">
-        <div class="flex items-center gap-4 mb-8 border-b border-gray-800 pb-6">
-            <button @click="$router.back()" class="text-gray-400 hover:text-white transition p-2 hover:bg-[#242424] rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-            </button>
-            <div>
-                <h1 class="text-2xl font-bold">Matrícula</h1>
-                <p class="text-gray-500 text-sm" v-if="cliente">Aluno: <span class="text-white font-medium">{{ cliente.nome }}</span></p>
-            </div>
-        </div>
+  <div v-if="loading" class="text-center text-gray-400 mt-10">Carregando dados para a matrícula...</div>
+  <div v-else-if="cliente" class="space-y-6">
 
-        <div v-if="loading" class="flex justify-center items-center py-20">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#009088]"></div>
-        </div>
-
-        <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            <div class="lg:col-span-2 space-y-6">
-
-                <div class="bg-[#242424] p-6 rounded-xl border border-[#333]">
-                    <h2 class="text-lg font-semibold text-[#009088] mb-4 flex items-center gap-2">
-                        <span class="bg-[#009088] text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">1</span>
-                        Plano e Vigência
-                    </h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Plano Contratado</label>
-                            <select
-                                v-model="form.plano_id"
-                                @change="resetarHorarios"
-                                class="w-full bg-[#1e1e1e] border border-[#444] text-white rounded-lg py-3 px-4 focus:ring-1 focus:ring-[#009088] focus:border-[#009088] outline-none transition shadow-sm">
-                                <option value="" disabled>Selecione...</option>
-                                <option v-for="plano in planos" :key="plano.id" :value="plano.id">
-                                    {{ plano.nome }} ({{ plano.numero_aulas }}x/sem) - R$ {{ formatarMoeda(plano.preco) }}
-                                </option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-400 mb-2">Início das Aulas</label>
-                            <input
-                                type="date"
-                                v-model="form.data_inicio"
-                                class="w-full bg-[#1e1e1e] border border-[#444] text-white rounded-lg py-3 px-4 focus:ring-1 focus:ring-[#009088] focus:border-[#009088] outline-none transition shadow-sm">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-[#242424] p-6 rounded-xl border border-[#333] min-h-[400px]">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                        <h2 class="text-lg font-semibold text-[#009088] flex items-center gap-2">
-                            <span class="bg-[#009088] text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">2</span>
-                            Horários Fixos
-                        </h2>
-
-                        <div v-if="planoSelecionado"
-                             class="text-sm px-4 py-1.5 rounded-full border transition-all duration-300 font-medium flex items-center gap-2"
-                             :class="statusSelecaoClass">
-                             <span v-if="completo">✓</span>
-                            {{ form.horarios_agenda_ids.length }} de {{ planoSelecionado.numero_aulas }} horários selecionados
-                        </div>
-                    </div>
-
-                    <div v-if="!planoSelecionado" class="flex flex-col items-center justify-center h-64 border-2 border-dashed border-[#333] rounded-lg text-gray-500 bg-[#1e1e1e]/50">
-                        <p>Selecione um plano acima para liberar a agenda.</p>
-                    </div>
-
-                    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                        <div v-for="horario in horariosDisponiveis" :key="horario.id"
-                             @click="toggleHorario(horario)"
-                             :class="[
-                                'relative border rounded-xl p-4 cursor-pointer transition-all duration-200 select-none flex flex-col justify-between min-h-[100px]',
-                                isChecked(horario.id)
-                                    ? 'bg-[#009088]/20 border-[#009088] ring-1 ring-[#009088]'
-                                    : 'bg-[#1e1e1e] border-[#333] hover:border-gray-500 hover:bg-[#262626]',
-                                isDisabled(horario.id) ? 'opacity-40 cursor-not-allowed grayscale' : ''
-                             ]"
-                        >
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="font-bold text-sm text-white uppercase tracking-wider">{{ formatarDia(horario.dia_semana) }}</span>
-
-                                <div class="text-[10px] font-bold px-2 py-0.5 rounded border" :class="getBadgeClass(horario)">
-                                    {{ horario.inscricoes_count }}/{{ horario.vagas_totais }}
-                                </div>
-                            </div>
-
-                            <div class="text-2xl font-mono text-gray-200 font-light tracking-wide">
-                                {{ horario.horario_inicio.substring(0, 5) }}
-                            </div>
-
-                            <div v-if="isChecked(horario.id)" class="absolute bottom-2 right-2 text-[#009088]">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-1">
-                <div class="bg-[#242424] p-6 rounded-xl border border-[#333] sticky top-6 shadow-xl">
-                    <h3 class="font-bold text-white mb-6 text-lg border-b border-gray-700 pb-4">Resumo</h3>
-
-                    <div class="space-y-4 mb-8 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Aluno</span>
-                            <span class="text-white font-medium text-right">{{ cliente.nome }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Plano</span>
-                            <span class="text-white font-medium text-right">{{ planoSelecionado?.nome || '-' }}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-400">Horários</span>
-                            <span :class="completo ? 'text-green-400 font-bold' : 'text-gray-500'">
-                                {{ form.horarios_agenda_ids.length }} selecionados
-                            </span>
-                        </div>
-                        <div class="pt-4 border-t border-gray-700 flex justify-between items-center">
-                            <span class="text-gray-400">Total Mensal</span>
-                            <span class="text-[#009088] font-bold text-xl">R$ {{ formatarMoeda(planoSelecionado?.preco) }}</span>
-                        </div>
-                    </div>
-
-                    <div v-if="erroApi" class="mb-4 p-3 bg-red-900/20 border border-red-800/50 text-red-300 rounded-lg text-xs">
-                        {{ erroApi }}
-                    </div>
-
-                    <button
-                        @click="salvarInscricao"
-                        class="w-full bg-[#009088] hover:bg-[#007972] disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg shadow-lg transition duration-200 flex justify-center items-center gap-2"
-                        :disabled="processando || !formValid">
-                        <span v-if="processando" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-                        {{ processando ? 'Processando...' : 'Confirmar Matrícula' }}
-                    </button>
-
-                    <button @click="$router.back()" class="w-full mt-3 text-gray-500 hover:text-white text-sm py-2 transition">
-                        Cancelar
-                    </button>
-                </div>
-            </div>
-        </div>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-white">Nova Matrícula para: <span class="text-teal-500">{{ cliente.nome }}</span></h2>
+      <router-link :to="{ name: 'detalhes-cliente', params: { id: props.id } }" class="text-sm font-semibold text-teal-500 hover:text-teal-400 flex items-center gap-1">
+        <span>&larr;</span> Voltar
+      </router-link>
     </div>
+
+    <div v-if="successMessage" class="mb-4 bg-green-500/20 border border-green-700 text-green-300 text-sm p-3 rounded-lg">
+      {{ successMessage }}
+    </div>
+    <div v-if="errorMessage" class="mb-4 bg-red-500/20 border border-red-700 text-red-300 text-sm p-3 rounded-lg">
+      {{ errorMessage }}
+    </div>
+
+    <form @submit.prevent="submitMatricula" class="bg-[#151515] p-8 rounded-xl border border-white/10 space-y-6">
+
+      <fieldset class="form-section border-gray-700">
+        <legend class="form-legend">Contrato e Plano</legend>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <div>
+            <label class="block text-xs text-gray-400 mb-1 ml-1">Selecione o Plano *</label>
+            <select v-model="form.plano_id" class="form-input" required>
+              <option value="" disabled>Escolha um plano...</option>
+              <option v-for="plano in planos" :key="plano.id" :value="plano.id">
+                {{ plano.nome }} ({{ plano.numero_aulas }} aulas/semana) - R$ {{ formatarPreco(plano.preco) }}
+              </option>
+            </select>
+            <p v-if="limiteHorarios > 0" class="text-xs text-teal-400 mt-1">
+                Limite de horários fixos semanais: {{ limiteHorarios }}
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-400 mb-1 ml-1">Data de Início *</label>
+            <input v-model="form.data_inicio" type="date" class="form-input" required :min="minDate" />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section border-gray-700">
+        <legend class="form-legend">Horários Fixos (Vagas)</legend>
+        <p class="text-sm text-gray-400 mb-4">Selecione os horários que o aluno ocupará.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+
+          <div
+            v-for="horario in horariosAgenda"
+            :key="horario.id"
+            @click="toggleHorario(horario.id)"
+
+            :class="['p-4 rounded-lg transition-all duration-200',
+                     // Desativa se Lotado OU (Limite Atingido E não selecionado)
+                     horario.ocupacao >= horario.vagas_totais || (form.horarios_agenda_ids.length >= limiteHorarios && !form.horarios_agenda_ids.includes(horario.id)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-teal-600',
+
+                     // Estilo de Lotado
+                     horario.ocupacao >= horario.vagas_totais ? 'bg-red-900/40 border border-red-700' : 'border',
+
+                     // Estilo de Selecionado
+                     form.horarios_agenda_ids.includes(horario.id) ? 'bg-teal-700 border-teal-500 shadow-lg shadow-teal-900/30' : 'bg-[#1a1a1a] border-gray-700']"
+
+            :title="horario.ocupacao >= horario.vagas_totais ? 'Vaga Esgotada' : (form.horarios_agenda_ids.length >= limiteHorarios && limiteHorarios > 0 && !form.horarios_agenda_ids.includes(horario.id) ? `Limite do Plano (${limiteHorarios}) atingido` : 'Clique para selecionar')"
+          >
+            <div class="flex justify-between items-start">
+                <p :class="['font-semibold text-lg', horario.ocupacao >= horario.vagas_totais ? 'text-gray-300' : 'text-white']">
+                    {{ getDiaSemana(horario.dia_semana) }}
+                </p>
+                <input
+                    type="checkbox"
+                    :checked="form.horarios_agenda_ids.includes(horario.id)"
+
+                    :disabled="horario.ocupacao >= horario.vagas_totais || (form.horarios_agenda_ids.length >= limiteHorarios && !form.horarios_agenda_ids.includes(horario.id))"
+
+                    class="h-5 w-5 rounded transition-colors duration-200"
+                    :class="[horario.ocupacao >= horario.vagas_totais || (form.horarios_agenda_ids.length >= limiteHorarios && !form.horarios_agenda_ids.includes(horario.id)) ? 'bg-gray-600 cursor-not-allowed' : 'text-teal-600 bg-gray-700 border-gray-600 focus:ring-teal-500']"
+                />
+            </div>
+
+            <p class="text-xl font-bold mt-1">{{ horario.horario_inicio?.slice(0, 5) || 'N/A' }}</p>
+
+            <div class="mt-2 text-xs">
+                <p :class="[horario.ocupacao >= horario.vagas_totais ? 'text-red-300' : 'text-gray-300']">
+                    Vagas: {{ horario.ocupacao }} / {{ horario.vagas_totais }}
+                </p>
+                <p v-if="horario.ocupacao >= horario.vagas_totais" class="text-red-300 font-semibold mt-1">LOTADO</p>
+            </div>
+          </div>
+
+        </div>
+        <p v-if="!horariosAgenda.length" class="text-center text-gray-500 py-4">Nenhum horário disponível cadastrado.</p>
+      </fieldset>
+
+      <div class="pt-4 border-t border-gray-700 flex justify-end">
+        <button type="submit" :disabled="saving || form.horarios_agenda_ids.length !== limiteHorarios"
+            :class="[form.horarios_agenda_ids.length !== limiteHorarios ? 'bg-gray-600' : 'bg-teal-700 hover:bg-teal-600']"
+            class="text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-teal-900/20">
+          {{ saving ? 'Processando Matrícula...' : 'Confirmar Matrícula' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+  <div v-else class="text-center text-red-400 mt-10">Erro: Cliente ou Matrícula não encontrada.</div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, onMounted, reactive, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
 
-const route = useRoute();
+const props = defineProps({
+  id: {
+    type: [String, Number],
+    required: true
+  }
+});
+
 const router = useRouter();
-const clienteId = route.params.id;
 
-// Estados
-const cliente = ref({});
-const planos = ref([]);
-const horariosDisponiveis = ref([]);
+// Variáveis de Estado
 const loading = ref(true);
-const processando = ref(false);
-const erroApi = ref('');
+const saving = ref(false);
+const cliente = ref(null);
+const planos = ref([]);
+const horariosAgenda = ref([]);
+const errorMessage = ref('');
+const successMessage = ref('');
 
-// Formulário
+// Dados do Formulário
 const form = reactive({
-    plano_id: '',
-    data_inicio: new Date().toISOString().split('T')[0], // Data de hoje como padrão
-    horarios_agenda_ids: []
+  usuario_id: props.id,
+  plano_id: '',
+  data_inicio: new Date().toISOString().split('T')[0],
+  horarios_agenda_ids: [],
 });
 
-// --- Carregamento Inicial ---
-onMounted(async () => {
-    try {
-        // Carrega dados em paralelo
-        const [resCliente, resPlanos, resHorarios] = await Promise.all([
-            axios.get(`/api/usuarios/${clienteId}`),
-            axios.get('/api/planos'),
-            axios.get('/api/horarios-agenda/disponiveis')
-        ]);
+const minDate = computed(() => new Date().toISOString().split('T')[0]);
 
-        cliente.value = resCliente.data;
-        planos.value = resPlanos.data;
-        horariosDisponiveis.value = resHorarios.data;
+// --- PROPRIEDADE COMPUTADA PARA O LIMITE (SOLUÇÃO DEFINITIVA) ---
+const limiteHorarios = computed(() => {
+    const planoSelecionado = planos.value.find(p => p.id === form.plano_id);
 
-        // Se já tiver inscrição ativa, alerta (opcional)
-        // Assumindo que 'inscricoes' vem no objeto cliente (se sua API retornar isso)
-        if (cliente.value.inscricoes && cliente.value.inscricoes.some(i => i.status === 'ativa')) {
-            // Se quiser bloquear:
-            // alert("Este aluno já possui uma matrícula ativa.");
-            // router.back();
-        }
-
-    } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-        erroApi.value = "Falha ao carregar informações. Verifique sua conexão.";
-    } finally {
-        loading.value = false;
+    if (!planoSelecionado || !planoSelecionado.numero_aulas) {
+        return 0;
     }
+
+    // SOLUÇÃO: Assumir que numero_aulas É o limite semanal (1, 2, ou 3)
+    const limite = parseInt(planoSelecionado.numero_aulas);
+
+    // Retorna o valor direto (ex: 2 para 2x/semana)
+    return limite > 0 ? limite : 0;
 });
 
-// --- Lógica Computada ---
-const planoSelecionado = computed(() => planos.value.find(p => p.id === form.plano_id));
 
-const completo = computed(() => {
-    if (!planoSelecionado.value) return false;
-    return form.horarios_agenda_ids.length === planoSelecionado.value.numero_aulas;
-});
+// --- FUNÇÕES DE BUSCA DE DADOS ---
 
-const formValid = computed(() => {
-    return form.plano_id && form.data_inicio && completo.value;
-});
+const fetchData = async () => {
+  loading.value = true;
+  try {
+    // 1. Cliente
+    const clienteResponse = await axios.get(`/api/usuarios/${props.id}`);
+    cliente.value = clienteResponse.data.data || clienteResponse.data;
 
-const statusSelecaoClass = computed(() => {
-    if (completo.value) return 'bg-green-900/30 text-green-400 border-green-800';
-    return 'bg-yellow-900/30 text-yellow-400 border-yellow-800';
-});
+    // 2. Planos
+    const planosResponse = await axios.get(`/api/planos`);
+    planos.value = planosResponse.data.data || planosResponse.data;
 
-// --- Ações ---
-const resetarHorarios = () => {
-    form.horarios_agenda_ids = [];
-};
+    // 3. Horários da Agenda (Slot fixo)
+    const horariosResponse = await axios.get(`/api/horarios-agenda`);
 
-const isChecked = (id) => form.horarios_agenda_ids.includes(id);
-
-const isDisabled = (id) => {
-    if (!planoSelecionado.value) return true; // Bloqueia se não tem plano
-    // Bloqueia se já atingiu o limite do plano E o horário atual não está selecionado
-    if (completo.value && !isChecked(id)) return true;
-    return false;
-};
-
-const toggleHorario = (horario) => {
-    if (isDisabled(horario.id)) return;
-
-    const index = form.horarios_agenda_ids.indexOf(horario.id);
-    if (index === -1) {
-        form.horarios_agenda_ids.push(horario.id);
-    } else {
-        form.horarios_agenda_ids.splice(index, 1);
-    }
-};
-
-const salvarInscricao = async () => {
-    processando.value = true;
-    erroApi.value = '';
-
-    try {
-        await axios.post('/api/inscricoes', {
-            usuario_id: clienteId,
-            plano_id: form.plano_id,
-            data_inicio: form.data_inicio,
-            horarios_agenda_ids: form.horarios_agenda_ids
+    horariosAgenda.value = (horariosResponse.data.data || horariosResponse.data)
+        .map(h => ({
+            ...h,
+            ocupacao: h.ocupacao || 0
+        }))
+        // Ordena por dia da semana e hora
+        .sort((a, b) => {
+            if (a.dia_semana !== b.dia_semana) {
+                return a.dia_semana - b.dia_semana;
+            }
+            return a.horario_inicio.localeCompare(b.horario_inicio);
         });
 
-        alert('Matrícula realizada com sucesso!');
-        router.push({ name: 'detalhes-cliente', params: { id: clienteId } });
+  } catch (error) {
+    console.error("Erro ao buscar dados iniciais:", error);
+    errorMessage.value = "Erro ao carregar planos ou horários. Verifique a API.";
+  } finally {
+    loading.value = false;
+  }
+};
 
-    } catch (error) {
-        if (error.response?.data?.message) {
-            erroApi.value = error.response.data.message;
-        } else {
-            erroApi.value = "Erro ao processar a matrícula.";
+// --- FUNÇÕES DE UTILIDADE ---
+
+const getDiaSemana = (dia) => {
+  const dias = ['Dom', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  return dias[dia === 7 ? 0 : dia];
+};
+
+const formatarPreco = (preco) => {
+  return parseFloat(preco).toFixed(2).replace('.', ',');
+};
+
+const toggleHorario = (id) => {
+    const horario = horariosAgenda.value.find(h => h.id === id);
+    const limite = limiteHorarios.value;
+
+    // 1. Checa se o horário existe ou está lotado
+    if (!horario || horario.ocupacao >= horario.vagas_totais) {
+        return;
+    }
+
+    const index = form.horarios_agenda_ids.indexOf(id);
+
+    if (index > -1) {
+        // Remove
+        form.horarios_agenda_ids.splice(index, 1);
+        errorMessage.value = '';
+    } else {
+        // Checa se o limite do plano foi atingido
+        if (form.horarios_agenda_ids.length >= limite) {
+            errorMessage.value = `O limite de horários fixos para o plano (${limite} vaga(s) semanal(is)) foi atingido.`;
+            return; // Bloqueia a adição
         }
-    } finally {
-        processando.value = false;
+        form.horarios_agenda_ids.push(id); // Adiciona
+        errorMessage.value = '';
     }
 };
 
-// --- Helpers de Formatação ---
-const formatarDia = (dia) => {
-    const dias = ['','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-    return dias[dia] || 'Dia';
+// --- FUNÇÃO DE SUBMISSÃO ---
+
+const submitMatricula = async () => {
+  saving.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+
+  // 1. Validação Front-end de Limite (REQUER EXATAMENTE o número de horários)
+  if (!form.plano_id) {
+    errorMessage.value = 'Selecione um plano antes de continuar.';
+    saving.value = false;
+    return;
+  }
+  if (form.horarios_agenda_ids.length !== limiteHorarios.value) {
+    errorMessage.value = `O plano exige a seleção de EXATAMENTE ${limiteHorarios.value} horários. Você selecionou ${form.horarios_agenda_ids.length}.`;
+    saving.value = false;
+    return;
+  }
+
+
+  const payload = {
+    usuario_id: form.usuario_id,
+    plano_id: form.plano_id,
+    data_inicio: form.data_inicio,
+    horarios_agenda_ids: form.horarios_agenda_ids
+  };
+
+  try {
+    await axios.post('/api/inscricoes', payload);
+
+    successMessage.value = 'Matrícula realizada e agenda gerada com sucesso! Redirecionando...';
+
+    setTimeout(() => {
+      router.push({ name: 'detalhes-cliente', params: { id: props.id } });
+    }, 2000);
+
+  } catch (error) {
+    console.error("Erro ao realizar matrícula:", error);
+    if (error.response && error.response.status === 422) {
+        const validationErrors = error.response.data.errors;
+        errorMessage.value = validationErrors.horarios_agenda_ids ? validationErrors.horarios_agenda_ids[0] : (error.response.data.message || 'Erro de validação desconhecido.');
+    } else {
+        errorMessage.value = 'Ocorreu um erro inesperado. Tente novamente mais tarde.';
+    }
+  } finally {
+    saving.value = false;
+  }
 };
 
-const formatarMoeda = (val) => {
-    if (!val) return '0,00';
-    return parseFloat(val).toFixed(2).replace('.', ',');
-};
-
-const getBadgeClass = (horario) => {
-    // Evita divisão por zero se vagas_totais for null ou 0
-    const total = horario.vagas_totais || 3;
-    const ocupacao = (horario.inscricoes_count || 0) / total;
-
-    if (ocupacao >= 1) return 'bg-red-900/50 text-red-200 border-red-800'; // Cheio
-    if (ocupacao > 0.6) return 'bg-yellow-900/50 text-yellow-200 border-yellow-800'; // Quase cheio
-    return 'bg-gray-700 text-gray-300 border-gray-600'; // Livre
-};
+onMounted(fetchData);
 </script>
+
+<style scoped>
+/* Estilos mantidos */
+.form-input {
+  @apply w-full p-3 rounded-lg bg-[#0f1616] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 border border-transparent transition-all;
+}
+.form-section { @apply border border-gray-700 rounded-lg p-4 pt-2; }
+.form-legend { @apply px-2 text-sm font-semibold text-teal-400 -ml-2; }
+.action-button-sm {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  color: white;
+  background-color: #0d9488;
+  transition: background-color 0.2s;
+}
+.action-button-sm:hover {
+  background-color: #0f766e;
+}
+</style>

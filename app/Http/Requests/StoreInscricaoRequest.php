@@ -8,19 +8,23 @@ class StoreInscricaoRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        // Se a rota for protegida por sanctum (admin logado), TRUE é o padrão
         return true;
     }
 
     public function rules(): array
     {
         return [
-            'usuario_id'  => 'required|integer|exists:usuarios,id',
-            'plano_id'    => 'required|integer|exists:planos,id',
-            'data_inicio' => 'required|date',
-
-            // Recebemos um array de IDs (ex: [1, 5])
-            'horarios_agenda_ids'   => 'required|array',
-            'horarios_agenda_ids.*' => 'integer|exists:horarios_agenda,id',
+            // Requisito 1: Aluno
+            'usuario_id' => 'required|exists:usuarios,id',
+            // Requisito 2: Plano
+            'plano_id' => 'required|exists:planos,id',
+            // Requisito 3: Horários (deve ser um array com no mínimo 1 ID)
+            'horarios_agenda_ids' => 'required|array|min:1',
+            // Garante que cada ID no array existe na tabela horarios_agenda
+            'horarios_agenda_ids.*' => 'exists:horarios_agenda,id',
+            // Requisito 4: Data
+            'data_inicio' => 'required|date'
         ];
     }
 }
