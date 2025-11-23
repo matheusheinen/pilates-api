@@ -23,9 +23,11 @@ class HorarioAgenda extends Model
     // RELACIONAMENTO NOVO (Muitos para Muitos)
     public function inscricoes()
     {
-        return $this->belongsToMany(Inscricao::class, 'horario_inscricao', 'horario_agenda_id', 'inscricao_id')
+        return $this->belongsToMany(Inscricao::class, 'horarios_aluno', 'horario_agenda_id', 'inscricao_id')
+                    ->withPivot('status')
                     ->withTimestamps();
     }
+
     public function horariosAluno(): HasMany
     {
         // Usa a Foreign Key 'horario_agenda_id' que criamos na tabela horarios_aluno

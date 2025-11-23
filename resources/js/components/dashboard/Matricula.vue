@@ -237,24 +237,18 @@ const submitMatricula = async () => {
   errorMessage.value = '';
   successMessage.value = '';
 
-  // 1. Validação Front-end de Limite (REQUER EXATAMENTE o número de horários)
-  if (!form.plano_id) {
-    errorMessage.value = 'Selecione um plano antes de continuar.';
-    saving.value = false;
-    return;
-  }
+  // Validação: Garante que o número de horários selecionados bate com o limite do plano
   if (form.horarios_agenda_ids.length !== limiteHorarios.value) {
-    errorMessage.value = `O plano exige a seleção de EXATAMENTE ${limiteHorarios.value} horários. Você selecionou ${form.horarios_agenda_ids.length}.`;
+    errorMessage.value = `Selecione exatamente ${limiteHorarios.value} horário(s) para o plano selecionado.`;
     saving.value = false;
     return;
   }
-
 
   const payload = {
-    usuario_id: form.usuario_id,
+    usuario_id: props.id, // CRÍTICO: ID do aluno
     plano_id: form.plano_id,
     data_inicio: form.data_inicio,
-    horarios_agenda_ids: form.horarios_agenda_ids
+    horarios_agenda_ids: form.horarios_agenda_ids // CRÍTICO: Horários fixos
   };
 
   try {
@@ -263,14 +257,16 @@ const submitMatricula = async () => {
     successMessage.value = 'Matrícula realizada e agenda gerada com sucesso! Redirecionando...';
 
     setTimeout(() => {
+      // Redireciona para os detalhes do cliente
       router.push({ name: 'detalhes-cliente', params: { id: props.id } });
     }, 2000);
 
   } catch (error) {
     console.error("Erro ao realizar matrícula:", error);
     if (error.response && error.response.status === 422) {
-        const validationErrors = error.response.data.errors;
-        errorMessage.value = validationErrors.horarios_agenda_ids ? validationErrors.horarios_agenda_ids[0] : (error.response.data.message || 'Erro de validação desconhecido.');
+        // Exibe o erro de vaga ou validação
+        const message = error.response.data.message || 'Erro de validação.';
+        errorMessage.value = message;
     } else {
         errorMessage.value = 'Ocorreu um erro inesperado. Tente novamente mais tarde.';
     }

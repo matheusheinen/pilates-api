@@ -162,7 +162,9 @@ class AulaController extends Controller
             return response()->json(['message' => 'Acesso não autorizado'], 403);
         }
 
-        $parametros = ['--dias' => 60]; // Gera 60 dias de aulas
+        // Os parâmetros '--dias' não são mais necessários,
+        // pois a nova lógica está no modelo Inscricao (gera até o dia 10 do próximo mês).
+        $parametros = [];
 
         try {
             // 2. Chama o comando Artisan correto: 'agenda:atualizar'
@@ -183,7 +185,7 @@ class AulaController extends Controller
                 'message' => 'Erro interno ao executar a rotina de agenda. Verifique o log para detalhes.',
                 'error_detail' => $e->getMessage(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'line' => $e->getLine()
             ], 500);
         }
     }

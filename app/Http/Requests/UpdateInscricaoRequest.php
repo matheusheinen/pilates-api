@@ -16,19 +16,13 @@ class UpdateInscricaoRequest extends FormRequest
 
     public function rules(): array
     {
+        // Apenas os campos que podem ser editados no frontend, removendo data_inicio
         return [
-            // Campos que podem ser atualizados
-            'plano_id' => 'sometimes|integer|exists:planos,id',
-
-            // CAMPO CHAVE: Status do Contrato
-            'status' => ['required', 'string', Rule::in(['ativa', 'inativa', 'trancada', 'cancelada'])], //
-
-            // ADICIONADO: Suporte para reescrever os horários fixos na edição
-            'horarios_agenda_ids' => 'sometimes|array',
-            'horarios_agenda_ids.*' => 'exists:horarios_agenda,id',
-
-            // Não deve vir horários aqui, a menos que você queira reescrever a vaga
-
+            'usuario_id' => ['required', 'exists:usuarios,id'], // Mantido como required, mas o frontend o envia.
+            'plano_id' => ['required', 'exists:planos,id'],
+            'status' => ['required', 'in:ativa,inativa,trancada,cancelada'],
+            'horarios_agenda_ids' => ['required', 'array', 'min:1'],
+            'horarios_agenda_ids.*' => ['exists:horarios_agenda,id'],
         ];
     }
 }

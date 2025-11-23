@@ -4,13 +4,17 @@
 
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-bold text-white">Editar Inscrição: <span class="text-teal-500">{{ inscricao.usuario?.nome || 'N/A' }}</span></h2>
-      <router-link :to="{ name: 'listagem-inscricoes' }" class="text-sm font-semibold text-teal-500 hover:text-teal-400 flex items-center gap-1">
+      <router-link :to="{ name: 'listagem-inscricoes', query: inscricao.usuario_id ? { usuario_id: inscricao.usuario_id } : {} }" class="text-sm font-semibold text-teal-500 hover:text-teal-400 flex items-center gap-1">
         <span>&larr;</span> Voltar para a Listagem
       </router-link>
     </div>
 
     <div v-if="errorMessage" class="mb-4 bg-red-500/20 border border-red-700 text-red-300 text-sm p-3 rounded-lg">
       {{ errorMessage }}
+    </div>
+
+    <div v-if="successMessage" class="mb-4 bg-green-500/20 border border-green-700 text-green-300 text-sm p-3 rounded-lg">
+      {{ successMessage }}
     </div>
 
     <form @submit.prevent="submitForm" class="bg-[#151515] p-8 rounded-xl border border-white/10 space-y-6">
@@ -27,7 +31,7 @@
                 <option value="trancada">TRANCADA (Pausa)</option>
                 <option value="cancelada">CANCELADA (Encerrada)</option>
             </select>
-            <p v-if="form.status !== 'ativa'" class="text-xs text-red-400 mt-1">Ao salvar, a vaga será liberada!</p>
+            <p v-if="form.status !== 'ativa'" class="text-xs text-red-400 mt-1">Ao salvar, as aulas futuras serão canceladas e as vagas liberadas (exceto status 'trancada').</p>
           </div>
 
           <div>
@@ -40,8 +44,8 @@
           </div>
 
           <div>
-            <label class="block text-xs text-gray-400 mb-1 ml-1">Data de Início</label>
-            <input v-model="form.data_inicio" type="date" class="form-input" required :disabled="saving" />
+            <label class="block text-xs text-gray-400 mb-1 ml-1">Data de Início (Não Editável)</label>
+            <input :value="inscricao.data_inicio" type="date" class="form-input opacity-50 cursor-not-allowed" disabled />
           </div>
 
         </div>
@@ -102,7 +106,7 @@
 <script setup>
 import { ref, onMounted, reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import axios from 'axios'; // <--- CORREÇÃO: Importação padrão do pacote axios
 
 const props = defineProps({ id: { type: [String, Number], required: true } });
 
@@ -118,7 +122,6 @@ const successMessage = ref('');
 const form = reactive({
     usuario_id: null,
     plano_id: null,
-    data_inicio: null,
     status: 'ativa',
     horarios_agenda_ids: [],
 });
@@ -134,37 +137,58 @@ const limiteHorariosPorPlano = (planoId) => {
     return plano ? parseInt(plano.numero_aulas) : 0;
 };
 
+// Função Auxiliar: Adapta a nova estrutura (BelongsToMany) para a antiga (que o Template espera)
+// O template espera: v-for="horario" e usa "horario.agenda.dia_semana" e "horario.status"
+const adaptarEstruturaParaTemplate = (dadosInscricao) => {
+    if (dadosInscricao.horarios_aluno && Array.isArray(dadosInscricao.horarios_aluno)) {
+        // Mapeia a lista de Agendas para uma lista de Objetos parecidos com o antigo HorarioAluno
+        dadosInscricao.horarios_aluno = dadosInscricao.horarios_aluno.map(agenda => {
+            // Se já estiver adaptado (tem a prop .agenda), retorna como está
+            if (agenda.agenda) return agenda;
 
-// 1. Fetch de Dados Iniciais (Contrato, Planos e Agenda)
+            return {
+                id: agenda.pivot ? agenda.pivot.id : null, // ID do vínculo
+                status: agenda.pivot ? agenda.pivot.status : 'ativo', // Status do vínculo
+                agenda: agenda // Aninha o objeto agenda dentro de uma prop .agenda
+            };
+        });
+    }
+    return dadosInscricao;
+};
+
+// 1. Fetch de Dados Iniciais
 const fetchDados = async () => {
+  loading.value = true;
   try {
     const [planosResponse, inscricaoResponse, horariosResponse] = await Promise.all([
         axios.get('/api/planos'),
-        axios.get(`/api/inscricoes/${props.id}`), // Rota show()
-        axios.get('/api/horarios-agenda') // Rota index() com withCount
+        axios.get(`/api/inscricoes/${props.id}`),
+        axios.get('/api/horarios-agenda')
     ]);
 
-    // Processamento de Dados
     planos.value = planosResponse.data.data || planosResponse.data;
-    const data = inscricaoResponse.data.data || inscricaoResponse.data;
-    inscricao.value = data;
 
-    // Processamento de Agenda (necessário para exibir disponibilidade)
+    // CRÍTICO: Aplica o adaptador nos dados recebidos
+    const dataRaw = inscricaoResponse.data.data || inscricaoResponse.data;
+    const dataAdaptada = adaptarEstruturaParaTemplate(dataRaw);
+
+    inscricao.value = dataAdaptada;
+
     horariosAgenda.value = (horariosResponse.data.data || horariosResponse.data)
         .map(h => ({ ...h, ocupacao: h.ocupacao || 0 }))
         .sort((a, b) => a.dia_semana - b.dia_semana);
 
     // Preencher o formulário
-    form.usuario_id = data.usuario_id;
-    form.plano_id = data.plano_id;
-    form.data_inicio = data.data_inicio;
-    form.status = data.status;
-
-    // CRUCIAL: Preencher os horários FIXOS JÁ SELECIONADOS
-    form.horarios_agenda_ids = data.horarios_aluno.map(h => h.horario_agenda_id);
+    // Nota: Como adaptamos os dados, agora acessamos h.agenda.id
+    Object.assign(form, {
+        usuario_id: dataAdaptada.usuario_id,
+        plano_id: dataAdaptada.plano_id,
+        status: dataAdaptada.status,
+        horarios_agenda_ids: dataAdaptada.horarios_aluno.map(h => h.agenda.id),
+    });
 
   } catch (error) {
-    console.error("Erro ao buscar dados da inscrição:", error);
+    console.error("Erro ao buscar dados da inscrição:", error.response || error);
     errorMessage.value = "Erro ao carregar os dados da inscrição. Verifique a rota ou o token.";
   } finally {
     loading.value = false;
@@ -205,23 +229,36 @@ const submitForm = async () => {
     return;
   }
 
+  const payload = {
+      usuario_id: form.usuario_id,
+      plano_id: form.plano_id,
+      status: form.status,
+      horarios_agenda_ids: form.horarios_agenda_ids,
+  };
+
   try {
-    // Rota PUT/UPDATE, o Backend fará a checagem de vaga se o status for 'ativa'
-    await axios.put(`/api/inscricoes/${props.id}`, form);
+    const response = await axios.put(`/api/inscricoes/${props.id}`, payload);
 
     successMessage.value = 'Inscrição atualizada com sucesso!';
-    inscricao.value.status = form.status;
+
+    // Atualiza os dados da tela com a resposta fresca (também adaptada)
+    const responseData = response.data.data || response.data;
+    inscricao.value = adaptarEstruturaParaTemplate(responseData);
 
     setTimeout(() => {
-      router.push({ name: 'listagem-inscricoes' });
+      const userId = inscricao.value.usuario_id;
+      router.push({
+          name: 'listagem-inscricoes',
+          query: userId ? { usuario_id: userId } : {}
+      });
     }, 1500);
 
   } catch (error) {
-    console.error("Erro ao atualizar inscrição:", error);
+    console.error("Erro ao atualizar inscrição:", error.response || error);
     if (error.response && error.response.data && error.response.status === 422) {
         errorMessage.value = error.response.data.message || 'Erro de validação.';
     } else {
-        errorMessage.value = 'Falha ao salvar. Verifique se o usuário logado é um administrador.';
+        errorMessage.value = 'Falha crítica ao salvar. Verifique o servidor.';
     }
   } finally {
     saving.value = false;
@@ -229,7 +266,6 @@ const submitForm = async () => {
 };
 
 // 4. Funções de Utilidade
-const formatarPreco = (preco) => parseFloat(preco).toFixed(2).replace('.', ',');
 const formatarDiaSemana = (dia) => {
   const dias = ['Dom', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
   return dias[dia === 7 ? 0 : dia];
