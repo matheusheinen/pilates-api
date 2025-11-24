@@ -1,31 +1,34 @@
 <template>
-  <div class="space-y-6">
+  <div class="bg-[#151515] p-6 rounded-xl text-white">
 
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-      <h1 class="text-2xl font-bold text-white">Gestão de Mensalidades</h1>
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+      <div>
+        <h3 class="text-lg font-semibold">Gestão de Mensalidades</h3>
+        <p class="text-[#a0a0a0]">Controle de pagamentos, vencimentos e comprovantes.</p>
+      </div>
 
-      <div class="flex gap-2">
-        <button @click="gerarMensalidades" :disabled="gerando" class="btn-secondary flex items-center gap-2">
+      <div>
+        <button @click="gerarMensalidades" :disabled="gerando" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 font-semibold transition-colors text-sm flex items-center justify-center gap-2 border border-gray-600">
           <span v-if="gerando" class="animate-spin">↻</span>
           <span>{{ gerando ? 'Gerando...' : 'Gerar Mensalidades do Mês' }}</span>
         </button>
       </div>
     </div>
 
-    <div class="bg-[#1a1a1a] p-4 rounded-lg border border-gray-700 flex flex-wrap gap-4 items-end">
-      <div class="flex-1 min-w-[200px]">
-        <label class="text-xs text-gray-400 mb-1 block">Buscar Aluno</label>
-        <input v-model="filtros.search" @input="fetchMensalidades" type="text" placeholder="Nome do aluno..." class="form-input" />
+    <div class="bg-[#1e1e1e] p-4 rounded-xl border border-[#333] mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end shadow-sm">
+      <div>
+        <label class="text-xs text-gray-400 mb-1 block ml-1">Buscar Aluno</label>
+        <input v-model="filtros.search" @input="fetchMensalidades" type="text" placeholder="Nome do aluno..." class="form-input-style" />
       </div>
 
-      <div class="w-40">
-        <label class="text-xs text-gray-400 mb-1 block">Mês de Vencimento</label>
-        <input v-model="filtros.mes" @change="fetchMensalidades" type="month" class="form-input text-white" />
+      <div>
+        <label class="text-xs text-gray-400 mb-1 block ml-1">Mês de Vencimento</label>
+        <input v-model="filtros.mes" @change="fetchMensalidades" type="month" class="form-input-style" />
       </div>
 
-      <div class="w-40">
-        <label class="text-xs text-gray-400 mb-1 block">Status</label>
-        <select v-model="filtros.status" @change="fetchMensalidades" class="form-input">
+      <div>
+        <label class="text-xs text-gray-400 mb-1 block ml-1">Status</label>
+        <select v-model="filtros.status" @change="fetchMensalidades" class="form-input-style">
           <option value="">Todos</option>
           <option value="pendente">Pendente</option>
           <option value="em_analise">Em Análise</option>
@@ -35,9 +38,9 @@
       </div>
     </div>
 
-    <div class="bg-[#1a1a1a] rounded-lg border border-gray-700 overflow-hidden relative">
+    <div class="bg-[#1e1e1e] rounded-xl border border-[#333] overflow-hidden relative shadow-sm">
 
-      <div v-if="loading" class="absolute inset-0 bg-[#1a1a1a]/80 z-10 flex items-center justify-center">
+      <div v-if="loading" class="absolute inset-0 bg-[#1e1e1e]/80 z-10 flex items-center justify-center">
         <div class="text-teal-500 font-semibold animate-pulse">Carregando...</div>
       </div>
 
@@ -45,44 +48,44 @@
         <table class="w-full text-left text-gray-300">
           <thead class="bg-[#252525] text-gray-400 uppercase text-xs">
             <tr>
-              <th class="p-4">Aluno</th>
-              <th class="p-4">Plano</th>
-              <th class="p-4">Vencimento</th>
-              <th class="p-4">Valor</th>
-              <th class="p-4">Status</th>
-              <th class="p-4 text-right">Ações</th>
+              <th class="px-6 py-3 font-medium tracking-wider">Aluno</th>
+              <th class="px-6 py-3 font-medium tracking-wider">Plano</th>
+              <th class="px-6 py-3 font-medium tracking-wider">Vencimento</th>
+              <th class="px-6 py-3 font-medium tracking-wider">Valor</th>
+              <th class="px-6 py-3 font-medium tracking-wider">Status</th>
+              <th class="px-6 py-3 font-medium tracking-wider text-right">Ações</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-700">
-            <tr v-for="mensalidade in mensalidades" :key="mensalidade.id" class="hover:bg-white/5 transition">
-              <td class="p-4 font-medium text-white">{{ mensalidade.inscricao?.usuario?.nome || 'N/A' }}</td>
-              <td class="p-4 text-sm">{{ mensalidade.inscricao?.plano?.nome || 'N/A' }}</td>
-              <td class="p-4">{{ formatarData(mensalidade.data_vencimento) }}</td>
-              <td class="p-4 font-mono text-teal-400">R$ {{ formatarPreco(mensalidade.valor) }}</td>
+          <tbody class="divide-y divide-[#333]">
+            <tr v-for="mensalidade in mensalidades" :key="mensalidade.id" class="hover:bg-[#2a2a2a] transition duration-150">
+              <td class="px-6 py-4 font-medium text-white">{{ mensalidade.inscricao?.usuario?.nome || 'N/A' }}</td>
+              <td class="px-6 py-4 text-sm text-gray-400">{{ mensalidade.inscricao?.plano?.nome || 'N/A' }}</td>
+              <td class="px-6 py-4">{{ formatarData(mensalidade.data_vencimento) }}</td>
+              <td class="px-6 py-4 font-mono text-teal-400 font-medium">R$ {{ formatarPreco(mensalidade.valor) }}</td>
 
-              <td class="p-4">
-                <span :class="statusClass(mensalidade.status)" class="px-2 py-1 rounded text-xs font-bold uppercase whitespace-nowrap">
+              <td class="px-6 py-4">
+                <span :class="statusClass(mensalidade.status)" class="px-2 py-1 rounded text-[10px] font-bold uppercase whitespace-nowrap border border-white/5">
                   {{ mensalidade.status.replace('_', ' ') }}
                 </span>
               </td>
 
-              <td class="p-4 text-right">
+              <td class="px-6 py-4 text-right">
 
                 <div v-if="mensalidade.status === 'em_analise'" class="flex justify-end items-center gap-2">
                     <button @click="verComprovante(mensalidade.pagamento?.comprovante_path)" class="text-blue-400 hover:text-blue-300 text-xs underline mr-2" title="Ver Comprovante">
                         Ver Anexo
                     </button>
-                    <button @click="aprovar(mensalidade.id)" class="bg-green-600 hover:bg-green-500 text-white p-1.5 rounded transition" title="Aprovar">
+                    <button @click="aprovar(mensalidade.id)" class="bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white border border-green-600/50 p-1.5 rounded transition" title="Aprovar">
                         ✓
                     </button>
-                    <button @click="rejeitar(mensalidade.id)" class="bg-red-600 hover:bg-red-500 text-white p-1.5 rounded transition" title="Rejeitar">
+                    <button @click="rejeitar(mensalidade.id)" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/50 p-1.5 rounded transition" title="Rejeitar">
                         ✕
                     </button>
                 </div>
 
                 <button v-else-if="['pendente', 'atrasada'].includes(mensalidade.status)"
                         @click="abrirModalPagamento(mensalidade)"
-                        class="text-teal-500 hover:text-teal-400 text-sm font-semibold border border-teal-500/50 px-3 py-1 rounded hover:bg-teal-500/10 transition">
+                        class="text-teal-500 hover:text-teal-400 text-sm font-semibold border border-teal-500/30 px-3 py-1 rounded hover:bg-teal-500/10 transition">
                   Baixa Manual
                 </button>
 
@@ -96,45 +99,45 @@
               </td>
             </tr>
             <tr v-if="!loading && mensalidades.length === 0">
-                <td colspan="6" class="p-8 text-center text-gray-500">Nenhuma mensalidade encontrada com os filtros atuais.</td>
+                <td colspan="6" class="p-8 text-center text-gray-500 italic">Nenhuma mensalidade encontrada com os filtros atuais.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div class="p-4 border-t border-gray-700 flex justify-between items-center" v-if="paginacao.total > 0">
+      <div class="px-6 py-4 border-t border-[#333] flex justify-between items-center" v-if="paginacao.total > 0">
           <span class="text-xs text-gray-500">Mostrando {{ paginacao.from }} - {{ paginacao.to }} de {{ paginacao.total }}</span>
           <div class="flex gap-2">
-              <button @click="mudarPagina(paginacao.current_page - 1)" :disabled="paginacao.current_page === 1" class="px-3 py-1 bg-gray-700 rounded text-sm disabled:opacity-50 transition hover:bg-gray-600">&lt;</button>
-              <button @click="mudarPagina(paginacao.current_page + 1)" :disabled="paginacao.current_page === paginacao.last_page" class="px-3 py-1 bg-gray-700 rounded text-sm disabled:opacity-50 transition hover:bg-gray-600">&gt;</button>
+              <button @click="mudarPagina(paginacao.current_page - 1)" :disabled="paginacao.current_page === 1" class="px-3 py-1 bg-[#252525] hover:bg-[#333] border border-[#333] rounded text-sm disabled:opacity-50 transition">&lt;</button>
+              <button @click="mudarPagina(paginacao.current_page + 1)" :disabled="paginacao.current_page === paginacao.last_page" class="px-3 py-1 bg-[#252525] hover:bg-[#333] border border-[#333] rounded text-sm disabled:opacity-50 transition">&gt;</button>
           </div>
       </div>
     </div>
 
-    <div v-if="modalAberto" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div class="bg-[#1f1f1f] rounded-xl border border-gray-600 w-full max-w-md p-6 shadow-2xl">
-        <h3 class="text-xl font-bold text-white mb-4">Baixa Manual de Pagamento</h3>
+    <div v-if="modalAberto" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-[#1f1f1f] rounded-xl border border-gray-600 w-full max-w-md p-6 shadow-2xl transform transition-all">
+        <h3 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-3">Baixa Manual de Pagamento</h3>
 
-        <div class="mb-4 p-3 bg-gray-800 rounded border border-gray-700">
-            <p class="text-sm text-gray-400">Aluno: <span class="text-white font-semibold">{{ mensalidadeSelecionada?.inscricao?.usuario?.nome }}</span></p>
-            <p class="text-sm text-gray-400 mt-1">Vencimento: <span class="text-white">{{ formatarData(mensalidadeSelecionada?.data_vencimento) }}</span></p>
-            <p class="text-sm text-gray-400 mt-1">Valor Original: <span class="text-teal-400">R$ {{ formatarPreco(mensalidadeSelecionada?.valor) }}</span></p>
+        <div class="mb-6 p-4 bg-[#151515] rounded-lg border border-gray-700/50">
+            <p class="text-sm text-gray-400 flex justify-between"><span>Aluno:</span> <span class="text-white font-semibold">{{ mensalidadeSelecionada?.inscricao?.usuario?.nome }}</span></p>
+            <p class="text-sm text-gray-400 flex justify-between mt-2"><span>Vencimento:</span> <span class="text-white">{{ formatarData(mensalidadeSelecionada?.data_vencimento) }}</span></p>
+            <p class="text-sm text-gray-400 flex justify-between mt-2 border-t border-gray-700 pt-2"><span>Valor Original:</span> <span class="text-teal-400 font-mono">R$ {{ formatarPreco(mensalidadeSelecionada?.valor) }}</span></p>
         </div>
 
         <form @submit.prevent="confirmarPagamentoManual" class="space-y-4">
           <div>
-            <label class="block text-xs text-gray-400 mb-1">Data do Recebimento</label>
-            <input v-model="formPagamento.data_pagamento" type="date" class="form-input" required />
+            <label class="block text-xs text-gray-400 mb-1 ml-1">Data do Recebimento</label>
+            <input v-model="formPagamento.data_pagamento" type="date" class="form-input-style" required />
           </div>
 
           <div>
-            <label class="block text-xs text-gray-400 mb-1">Valor Recebido (R$)</label>
-            <input v-model="formPagamento.valor_pago" type="number" step="0.01" class="form-input" required />
+            <label class="block text-xs text-gray-400 mb-1 ml-1">Valor Recebido (R$)</label>
+            <input v-model="formPagamento.valor_pago" type="number" step="0.01" class="form-input-style" required />
           </div>
 
           <div>
-            <label class="block text-xs text-gray-400 mb-1">Método de Pagamento</label>
-            <select v-model="formPagamento.metodo_pagamento" class="form-input" required>
+            <label class="block text-xs text-gray-400 mb-1 ml-1">Método de Pagamento</label>
+            <select v-model="formPagamento.metodo_pagamento" class="form-input-style" required>
                 <option value="pix">PIX</option>
                 <option value="dinheiro">Dinheiro</option>
                 <option value="cartao_credito">Cartão de Crédito</option>
@@ -142,9 +145,9 @@
             </select>
           </div>
 
-          <div class="flex justify-end gap-3 mt-6">
-            <button type="button" @click="fecharModal" class="px-4 py-2 text-gray-300 hover:text-white transition">Cancelar</button>
-            <button type="submit" :disabled="salvandoPagamento" class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded font-semibold disabled:opacity-50 transition">
+          <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-700">
+            <button type="button" @click="fecharModal" class="px-4 py-2 text-gray-400 hover:text-white transition font-medium text-sm">Cancelar</button>
+            <button type="submit" :disabled="salvandoPagamento" class="bg-teal-700 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-50 transition text-sm shadow-lg shadow-teal-900/20">
                 {{ salvandoPagamento ? 'Salvando...' : 'Confirmar Baixa' }}
             </button>
           </div>
@@ -161,7 +164,7 @@ import axios from 'axios';
 
 const mensalidades = ref([]);
 const paginacao = ref({});
-const loading = ref(false); // AJUSTE 2: Variável de loading
+const loading = ref(false);
 const gerando = ref(false);
 const modalAberto = ref(false);
 const mensalidadeSelecionada = ref(null);
@@ -170,7 +173,7 @@ const salvandoPagamento = ref(false);
 const filtros = reactive({
     search: '',
     status: '',
-    mes: new Date().toISOString().slice(0, 7) // Mês atual padrão
+    mes: new Date().toISOString().slice(0, 7)
 });
 
 const formPagamento = reactive({
@@ -182,7 +185,7 @@ const formPagamento = reactive({
 // --- FUNÇÕES DE BUSCA E LISTAGEM ---
 
 const fetchMensalidades = async (page = 1) => {
-    loading.value = true; // Inicia loading
+    loading.value = true;
     try {
         const params = { ...filtros, page };
         const response = await axios.get('/api/mensalidades', { params });
@@ -191,7 +194,7 @@ const fetchMensalidades = async (page = 1) => {
     } catch (error) {
         console.error("Erro ao buscar mensalidades:", error);
     } finally {
-        loading.value = false; // Finaliza loading
+        loading.value = false;
     }
 };
 
@@ -222,12 +225,8 @@ const aprovar = async (id) => {
     if(!confirm('Confirmar o recebimento deste pagamento? O status mudará para PAGO.')) return;
     try {
         await axios.post(`/api/mensalidades/${id}/aprovar`);
-
-        // AJUSTE 3: Limpar filtro de mês para mostrar a nova mensalidade gerada
         filtros.mes = '';
-
         fetchMensalidades(paginacao.value.current_page);
-        alert('Pagamento aprovado e próxima mensalidade gerada!');
     } catch (error) {
         alert('Erro ao aprovar: ' + (error.response?.data?.message || 'Erro desconhecido'));
     }
@@ -254,7 +253,6 @@ const verComprovante = (path) => {
 const abrirModalPagamento = (mensalidade) => {
     mensalidadeSelecionada.value = mensalidade;
 
-    // AJUSTE 1: Data correta no Fuso Horário local
     const hoje = new Date();
     const offset = hoje.getTimezoneOffset();
     const dataLocal = new Date(hoje.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
@@ -276,13 +274,9 @@ const confirmarPagamentoManual = async () => {
 
     try {
         await axios.post(`/api/mensalidades/${mensalidadeSelecionada.value.id}/pagar`, formPagamento);
-
-        // AJUSTE 3: Limpar filtro de mês para ver a renovação
         filtros.mes = '';
-
         fetchMensalidades(paginacao.value.current_page);
         fecharModal();
-        alert('Baixa registrada e próxima mensalidade gerada!');
     } catch (error) {
         alert('Erro ao registrar pagamento: ' + (error.response?.data?.message || 'Verifique os dados.'));
         console.error(error);
@@ -301,13 +295,13 @@ const formatarData = (data) => {
 };
 const statusClass = (status) => {
     const classes = {
-        'pendente': 'bg-yellow-500/20 text-yellow-400',
-        'em_analise': 'bg-blue-500/20 text-blue-400',
-        'paga': 'bg-green-500/20 text-green-400',
-        'atrasada': 'bg-red-500/20 text-red-400',
-        'cancelada': 'bg-gray-500/20 text-gray-400',
+        'pendente': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+        'em_analise': 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+        'paga': 'bg-green-500/10 text-green-400 border-green-500/30',
+        'atrasada': 'bg-red-500/10 text-red-400 border-red-500/30',
+        'cancelada': 'bg-gray-500/10 text-gray-400 border-gray-500/30',
     };
-    return classes[status] || 'bg-gray-500/20 text-gray-400';
+    return classes[status] || 'bg-gray-500/10 text-gray-400';
 };
 
 onMounted(() => {
@@ -316,10 +310,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.form-input {
-  @apply w-full p-2 rounded bg-[#0f1616] text-white border border-gray-700 focus:border-teal-500 focus:outline-none text-sm transition-all;
-}
-.btn-secondary {
-  @apply bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition border border-gray-600;
+.form-input-style {
+  @apply w-full p-2.5 rounded-lg bg-[#242424] text-white border border-[#333] focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none text-sm transition-all placeholder-gray-500;
 }
 </style>

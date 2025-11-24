@@ -1,105 +1,117 @@
 <template>
-    <div class="w-full">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-white">Gerenciar Planos</h1>
-            <button
-                @click="abrirModal()"
-                class="bg-[#009088] hover:bg-[#007972] text-white px-4 py-2 rounded-lg shadow transition duration-200 flex items-center gap-2">
-                <span>+</span> Novo Plano
-            </button>
-        </div>
+  <div class="bg-[#151515] p-6 rounded-xl text-white">
 
-        <div class="bg-[#1e1e1e] rounded-xl shadow overflow-hidden border border-[#333]">
-            <table class="min-w-full divide-y divide-[#333]">
-                <thead class="bg-[#242424]">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Aulas</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Preço</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-[#1e1e1e] divide-y divide-[#333]">
-                    <tr v-if="loading">
-                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">Carregando planos...</td>
-                    </tr>
-                    <tr v-else v-for="plano in planos" :key="plano.id" class="hover:bg-[#2b2b2b] transition duration-150">
-                        <td class="px-6 py-4 whitespace-nowrap text-gray-100 font-medium">{{ plano.nome }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-gray-400">{{ plano.numero_aulas }}x na semana</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-[#009088] font-bold">R$ {{ formatarPreco(plano.preco) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button @click="abrirModal(plano)" class="text-blue-400 hover:text-blue-300 mr-4 transition-colors">Editar</button>
-                            <button @click="deletarPlano(plano.id)" class="text-red-400 hover:text-red-300 transition-colors">Excluir</button>
-                        </td>
-                    </tr>
-                    <tr v-if="!loading && planos.length === 0">
-                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">Nenhum plano cadastrado.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <h3 class="text-lg font-semibold">Gerenciar Planos</h3>
+    <p class="text-[#a0a0a0] mb-6">Defina os pacotes de aulas e valores disponíveis.</p>
 
-        <div v-if="mostrarModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                <div class="fixed inset-0 bg-black bg-opacity-80 transition-opacity" @click="fecharModal"></div>
+      <div class="lg:col-span-1 bg-[#242424] p-6 rounded-xl self-start border border-gray-700 shadow-md">
+        <form @submit.prevent="salvarPlano" class="space-y-4">
 
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+          <h4 class="font-semibold text-white border-b border-gray-600 pb-2 mb-4">
+              {{ modoEdicao ? 'Editar Plano' : 'Novo Plano' }}
+          </h4>
 
-                <div class="inline-block align-bottom bg-[#1e1e1e] rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-[#333]">
-                    <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <h3 class="text-lg leading-6 font-bold text-white mb-4" id="modal-title">
-                            {{ modoEdicao ? 'Editar Plano' : 'Novo Plano' }}
-                        </h3>
+          <div v-if="mensagemErro" class="p-3 bg-red-900/50 border border-red-800 text-red-200 rounded text-sm">
+             {{ mensagemErro }}
+          </div>
 
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-400">Nome do Plano</label>
-                                <input v-model="form.nome" type="text" placeholder="Ex: Mensal 2x" class="mt-1 block w-full bg-[#2b2b2b] border border-[#444] text-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#009088] focus:border-[#009088] sm:text-sm placeholder-gray-600">
-                            </div>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1 ml-1">Nome do Plano</label>
+            <input v-model="form.nome" type="text" placeholder="Ex: Mensal 2x" class="form-input-style" required>
+          </div>
 
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400">Nº de Aulas (Semanal)</label>
-                                    <input v-model.number="form.numero_aulas" type="number" min="1" class="mt-1 block w-full bg-[#2b2b2b] border border-[#444] text-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#009088] focus:border-[#009088] sm:text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-400">Preço (R$)</label>
-                                    <input v-model="form.preco" type="number" step="0.01" class="mt-1 block w-full bg-[#2b2b2b] border border-[#444] text-white rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#009088] focus:border-[#009088] sm:text-sm">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-[#242424] px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-[#333]">
-                        <button
-                            @click="salvarPlano"
-                            type="button"
-                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#009088] text-base font-medium text-white hover:bg-[#007972] focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition-colors"
-                            :disabled="salvando">
-                            {{ salvando ? 'Salvando...' : 'Salvar' }}
-                        </button>
-                        <button
-                            @click="fecharModal"
-                            type="button"
-                            class="mt-3 w-full inline-flex justify-center rounded-md border border-[#444] shadow-sm px-4 py-2 bg-[#2b2b2b] text-base font-medium text-gray-300 hover:bg-[#333] focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
-                            Cancelar
-                        </button>
-                    </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1 ml-1">Aulas/Semana</label>
+                <input v-model="form.numero_aulas" type="number" min="1" class="form-input-style" required>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1 ml-1">Preço (R$)</label>
+                <input v-model="form.preco" type="number" step="0.01" min="0" class="form-input-style" required>
+            </div>
+          </div>
+
+          <div class="flex gap-2 pt-2">
+              <button v-if="modoEdicao" type="button" @click="cancelarEdicao" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 rounded-lg transition-colors text-sm">
+                Cancelar
+              </button>
+              <button type="submit" :disabled="salvando" class="flex-1 bg-teal-700 hover:bg-teal-600 text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-50">
+                {{ salvando ? 'Salvando...' : (modoEdicao ? 'Atualizar' : 'Cadastrar') }}
+              </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="lg:col-span-2">
+        <div class="bg-[#242424] rounded-xl border border-gray-700 overflow-hidden shadow-md">
+
+            <div v-if="loading" class="p-8 text-center text-teal-500 animate-pulse">
+                Carregando planos...
+            </div>
+
+            <div v-else-if="planos.length === 0" class="p-8 text-center text-gray-500">
+                Nenhum plano cadastrado.
+            </div>
+
+            <div v-else class="divide-y divide-gray-700">
+                <div class="grid grid-cols-12 gap-2 p-3 bg-[#2a2a2a] text-xs text-gray-400 font-medium uppercase tracking-wider">
+                   <div class="col-span-5">Nome do Plano</div>
+                   <div class="col-span-2 text-center">Aulas</div>
+                   <div class="col-span-2 text-right">Preço</div>
+                   <div class="col-span-3 text-right">Ações</div>
+                </div>
+
+                <div v-for="plano in planos" :key="plano.id" class="grid grid-cols-12 items-center gap-2 py-3 px-3 hover:bg-[#2b2b2b] transition duration-150 text-sm">
+
+                  <div class="col-span-5 font-medium text-white">
+                    {{ plano.nome }}
+                  </div>
+
+                  <div class="col-span-2 text-center text-gray-300">
+                    {{ plano.numero_aulas }}x / sem
+                  </div>
+
+                  <div class="col-span-2 text-right font-mono text-teal-400">
+                    R$ {{ formatarPreco(plano.preco) }}
+                  </div>
+
+                  <div class="col-span-3 text-right flex justify-end gap-2">
+                     <button
+                        @click="iniciarEdicao(plano)"
+                        class="text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/40 px-2 py-1 rounded transition font-semibold text-xs flex items-center"
+                        title="Editar Plano">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        Editar
+                     </button>
+
+                     <button
+                        @click="deletarPlano(plano.id)"
+                        class="text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/40 px-2 py-1 rounded transition font-semibold text-xs flex items-center"
+                        title="Excluir Plano">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Excluir
+                     </button>
+                  </div>
                 </div>
             </div>
         </div>
+      </div>
+
     </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
 
 const planos = ref([]);
 const loading = ref(true);
-const mostrarModal = ref(false);
 const modoEdicao = ref(false);
 const salvando = ref(false);
+const mensagemErro = ref('');
 
 const form = reactive({
     id: null,
@@ -108,55 +120,47 @@ const form = reactive({
     preco: ''
 });
 
-onMounted(async () => {
-    await carregarPlanos();
-});
-
+// 1. Carregar Dados
 const carregarPlanos = async () => {
     loading.value = true;
     try {
         const response = await axios.get('/api/planos');
-        planos.value = response.data;
+        planos.value = response.data.data || response.data;
     } catch (error) {
         console.error("Erro ao carregar planos:", error);
-        alert("Não foi possível carregar os planos.");
+        mensagemErro.value = "Não foi possível carregar a lista de planos.";
     } finally {
         loading.value = false;
     }
 };
 
-const formatarPreco = (valor) => {
-    return parseFloat(valor).toFixed(2).replace('.', ',');
+// 2. Lógica de Edição (Preenche o form lateral)
+const iniciarEdicao = (plano) => {
+    modoEdicao.value = true;
+    mensagemErro.value = '';
+
+    form.id = plano.id;
+    form.nome = plano.nome;
+    form.numero_aulas = plano.numero_aulas;
+    form.preco = plano.preco;
 };
 
-const abrirModal = (plano = null) => {
-    if (plano) {
-        modoEdicao.value = true;
-        form.id = plano.id;
-        form.nome = plano.nome;
-        form.numero_aulas = plano.numero_aulas;
-        form.preco = plano.preco;
-    } else {
-        modoEdicao.value = false;
-        resetForm();
-    }
-    mostrarModal.value = true;
-};
+// 3. Cancelar/Resetar
+const cancelarEdicao = () => {
+    modoEdicao.value = false;
+    mensagemErro.value = '';
 
-const fecharModal = () => {
-    mostrarModal.value = false;
-    resetForm();
-};
-
-const resetForm = () => {
     form.id = null;
     form.nome = '';
     form.numero_aulas = 1;
     form.preco = '';
 };
 
+// 4. Salvar (Create ou Update)
 const salvarPlano = async () => {
     salvando.value = true;
+    mensagemErro.value = '';
+
     try {
         if (modoEdicao.value) {
             await axios.put(`/api/planos/${form.id}`, form);
@@ -165,26 +169,48 @@ const salvarPlano = async () => {
             await axios.post('/api/planos', form);
             alert('Plano criado com sucesso!');
         }
-        fecharModal();
+
+        cancelarEdicao();
         await carregarPlanos();
+
     } catch (error) {
         console.error("Erro ao salvar:", error);
-        alert("Ocorreu um erro ao salvar o plano. Verifique os dados.");
+        if (error.response && error.response.data && error.response.data.message) {
+            mensagemErro.value = error.response.data.message;
+        } else {
+            mensagemErro.value = "Ocorreu um erro ao salvar. Verifique os dados.";
+        }
     } finally {
         salvando.value = false;
     }
 };
 
+// 5. Deletar
 const deletarPlano = async (id) => {
     if (!confirm('Tem certeza que deseja excluir este plano?')) return;
 
     try {
         await axios.delete(`/api/planos/${id}`);
-        alert('Plano excluído.');
         await carregarPlanos();
+        alert('Plano excluído com sucesso!');
     } catch (error) {
-        console.error("Erro ao excluir:", error);
-        alert("Erro ao excluir o plano.");
+        console.error("Erro ao deletar:", error);
+        alert("Erro ao excluir: Este plano pode estar vinculado a alunos.");
     }
 };
+
+// Helpers
+const formatarPreco = (valor) => {
+    return parseFloat(valor).toFixed(2).replace('.', ',');
+};
+
+onMounted(() => {
+    carregarPlanos();
+});
 </script>
+
+<style scoped>
+.form-input-style {
+    @apply w-full bg-[#1e1e1e] border border-[#444] text-white rounded p-2 text-sm focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition-all;
+}
+</style>

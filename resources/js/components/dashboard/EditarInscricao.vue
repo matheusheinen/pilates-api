@@ -9,6 +9,11 @@
       </router-link>
     </div>
 
+    <div v-if="isCancelada" class="mb-4 bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-4 rounded-lg flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        <strong>Atenção:</strong> Esta inscrição está CANCELADA e não pode ser editada. Para reativar o aluno, crie uma nova inscrição.
+    </div>
+
     <div v-if="errorMessage" class="mb-4 bg-red-500/20 border border-red-700 text-red-300 text-sm p-3 rounded-lg">
       {{ errorMessage }}
     </div>
@@ -17,7 +22,9 @@
       {{ successMessage }}
     </div>
 
-    <form @submit.prevent="submitForm" class="bg-[#151515] p-8 rounded-xl border border-white/10 space-y-6">
+    <form @submit.prevent="submitForm" class="bg-[#151515] p-8 rounded-xl border border-white/10 space-y-6 relative">
+
+      <div v-if="isCancelada" class="absolute inset-0 bg-[#151515]/50 z-10 cursor-not-allowed rounded-xl"></div>
 
       <fieldset class="form-section border-gray-700">
         <legend class="form-legend">Dados do Contrato</legend>
@@ -25,18 +32,17 @@
 
           <div>
             <label class="block text-xs text-gray-400 mb-1 ml-1">Status do Contrato</label>
-            <select v-model="form.status" class="form-input" :class="{'text-red-400': form.status !== 'ativa', 'text-green-400': form.status === 'ativa'}" required>
+            <select v-model="form.status" class="form-input" :disabled="isCancelada" :class="{'text-red-400': form.status !== 'ativa', 'text-green-400': form.status === 'ativa'}" required>
                 <option value="ativa">ATIVA</option>
                 <option value="inativa">INATIVA (Suspensa)</option>
                 <option value="trancada">TRANCADA (Pausa)</option>
                 <option value="cancelada">CANCELADA (Encerrada)</option>
             </select>
-            <p v-if="form.status !== 'ativa'" class="text-xs text-red-400 mt-1">Ao salvar, as aulas futuras serão canceladas e as vagas liberadas (exceto status 'trancada').</p>
           </div>
 
           <div>
-            <label class="block text-xs text-gray-400 mb-1 ml-1">Plano Selecionado (Limite: {{ limiteHorarios }}x)</label>
-            <select v-model="form.plano_id" class="form-input" required :disabled="saving">
+            <label class="block text-xs text-gray-400 mb-1 ml-1">Plano Selecionado</label>
+            <select v-model="form.plano_id" class="form-input" required :disabled="saving || isCancelada">
                 <option v-for="plano in planos" :key="plano.id" :value="plano.id">
                     {{ plano.nome }} ({{ limiteHorariosPorPlano(plano.id) }}x/semana)
                 </option>
@@ -44,7 +50,7 @@
           </div>
 
           <div>
-            <label class="block text-xs text-gray-400 mb-1 ml-1">Data de Início (Não Editável)</label>
+            <label class="block text-xs text-gray-400 mb-1 ml-1">Data de Início</label>
             <input :value="inscricao.data_inicio" type="date" class="form-input opacity-50 cursor-not-allowed" disabled />
           </div>
 
@@ -52,50 +58,45 @@
       </fieldset>
 
       <fieldset class="form-section border-gray-700">
-        <legend class="form-legend">Horários Fixos Reservados ({{ form.horarios_agenda_ids.length }} / {{ limiteHorarios }})</legend>
-        <p class="text-sm text-gray-400 mb-4">Selecione os novos horários fixos. O sistema checará a disponibilidade da vaga ao salvar.</p>
+        <legend class="form-legend">Horários Fixos Reservados</legend>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           <div
             v-for="horario in horariosAgenda"
             :key="horario.id"
-            @click="toggleHorario(horario.id)"
-
+            @click="!isCancelada && toggleHorario(horario.id)"
             :class="['p-4 rounded-lg transition-all duration-200',
-                     // Desativa cliques se Lotado OU (Limite Atingido E não selecionado)
+                     // Lógica de bloqueio visual se cancelada
+                     isCancelada ? 'opacity-50 cursor-not-allowed' : '',
                      horario.ocupacao >= horario.vagas_totais || (form.horarios_agenda_ids.length >= limiteHorarios && !form.horarios_agenda_ids.includes(horario.id)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-teal-600',
-
                      horario.ocupacao >= horario.vagas_totais ? 'bg-red-900/40 border border-red-700' : 'border',
-
                      form.horarios_agenda_ids.includes(horario.id) ? 'bg-teal-700 border-teal-500 shadow-lg shadow-teal-900/30' : 'bg-[#1a1a1a] border-gray-700']"
-
-            :title="horario.ocupacao >= horario.vagas_totais ? 'Vaga Esgotada' : (form.horarios_agenda_ids.length >= limiteHorarios && !form.horarios_agenda_ids.includes(horario.id) ? `Limite do Plano (${limiteHorarios}) atingido` : 'Clique para selecionar')"
           >
             <div class="flex justify-between items-start">
                 <p class="font-semibold text-lg">{{ formatarDiaSemana(horario.dia_semana) }}</p>
-                <input type="checkbox" :checked="form.horarios_agenda_ids.includes(horario.id)" :disabled="horario.ocupacao >= horario.vagas_totais || (form.horarios_agenda_ids.length >= limiteHorarios && !form.horarios_agenda_ids.includes(horario.id))"
-                    class="h-5 w-5 rounded transition-colors duration-200" :class="[horario.ocupacao >= horario.vagas_totais || (form.horarios_agenda_ids.length >= limiteHorarios && !form.horarios_agenda_ids.includes(horario.id)) ? 'bg-gray-600 cursor-not-allowed' : 'text-teal-600 bg-gray-700 border-gray-600 focus:ring-teal-500']"/>
+                <input type="checkbox" :checked="form.horarios_agenda_ids.includes(horario.id)" :disabled="isCancelada || horario.ocupacao >= horario.vagas_totais"
+                    class="h-5 w-5 rounded transition-colors duration-200" :class="[horario.ocupacao >= horario.vagas_totais ? 'bg-gray-600 cursor-not-allowed' : 'text-teal-600 bg-gray-700 border-gray-600 focus:ring-teal-500']"/>
             </div>
-
             <p class="text-xl font-bold mt-1">{{ horario.horario_inicio?.substring(0, 5) || 'N/A' }}</p>
-
             <div class="mt-2 text-xs">
                 <p :class="[horario.ocupacao >= horario.vagas_totais ? 'text-red-300' : 'text-gray-300']">
                     Vagas: {{ horario.ocupacao }} / {{ horario.vagas_totais }}
                 </p>
-                <p v-if="horario.ocupacao >= horario.vagas_totais" class="text-red-300 font-semibold mt-1">LOTADO</p>
             </div>
           </div>
         </div>
       </fieldset>
 
-
       <div class="pt-4 border-t border-gray-700 flex justify-end">
-        <button type="submit" :disabled="saving || form.horarios_agenda_ids.length !== limiteHorarios"
+        <button v-if="!isCancelada" type="submit" :disabled="saving || form.horarios_agenda_ids.length !== limiteHorarios"
             :class="[form.horarios_agenda_ids.length !== limiteHorarios ? 'bg-gray-600' : 'bg-teal-700 hover:bg-teal-600']"
             class="text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-teal-900/20">
           {{ saving ? 'Salvando...' : 'Salvar Alterações' }}
         </button>
+
+        <router-link v-else :to="{ name: 'listagem-inscricoes' }" class="text-gray-400 hover:text-white font-semibold py-3 px-8">
+            Voltar
+        </router-link>
       </div>
 
     </form>
@@ -106,7 +107,7 @@
 <script setup>
 import { ref, onMounted, reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios'; // <--- CORREÇÃO: Importação padrão do pacote axios
+import axios from 'axios';
 
 const props = defineProps({ id: { type: [String, Number], required: true } });
 
@@ -126,6 +127,11 @@ const form = reactive({
     horarios_agenda_ids: [],
 });
 
+// COMPUTED: Verifica se está cancelada
+const isCancelada = computed(() => {
+    return inscricao.value?.status === 'cancelada';
+});
+
 // --- LÓGICA DE LIMITE ---
 const limiteHorarios = computed(() => {
     const planoSelecionado = planos.value.find(p => p.id === form.plano_id);
@@ -137,26 +143,20 @@ const limiteHorariosPorPlano = (planoId) => {
     return plano ? parseInt(plano.numero_aulas) : 0;
 };
 
-// Função Auxiliar: Adapta a nova estrutura (BelongsToMany) para a antiga (que o Template espera)
-// O template espera: v-for="horario" e usa "horario.agenda.dia_semana" e "horario.status"
 const adaptarEstruturaParaTemplate = (dadosInscricao) => {
     if (dadosInscricao.horarios_aluno && Array.isArray(dadosInscricao.horarios_aluno)) {
-        // Mapeia a lista de Agendas para uma lista de Objetos parecidos com o antigo HorarioAluno
         dadosInscricao.horarios_aluno = dadosInscricao.horarios_aluno.map(agenda => {
-            // Se já estiver adaptado (tem a prop .agenda), retorna como está
             if (agenda.agenda) return agenda;
-
             return {
-                id: agenda.pivot ? agenda.pivot.id : null, // ID do vínculo
-                status: agenda.pivot ? agenda.pivot.status : 'ativo', // Status do vínculo
-                agenda: agenda // Aninha o objeto agenda dentro de uma prop .agenda
+                id: agenda.pivot ? agenda.pivot.id : null,
+                status: agenda.pivot ? agenda.pivot.status : 'ativo',
+                agenda: agenda
             };
         });
     }
     return dadosInscricao;
 };
 
-// 1. Fetch de Dados Iniciais
 const fetchDados = async () => {
   loading.value = true;
   try {
@@ -168,18 +168,14 @@ const fetchDados = async () => {
 
     planos.value = planosResponse.data.data || planosResponse.data;
 
-    // CRÍTICO: Aplica o adaptador nos dados recebidos
     const dataRaw = inscricaoResponse.data.data || inscricaoResponse.data;
     const dataAdaptada = adaptarEstruturaParaTemplate(dataRaw);
-
     inscricao.value = dataAdaptada;
 
     horariosAgenda.value = (horariosResponse.data.data || horariosResponse.data)
         .map(h => ({ ...h, ocupacao: h.ocupacao || 0 }))
         .sort((a, b) => a.dia_semana - b.dia_semana);
 
-    // Preencher o formulário
-    // Nota: Como adaptamos os dados, agora acessamos h.agenda.id
     Object.assign(form, {
         usuario_id: dataAdaptada.usuario_id,
         plano_id: dataAdaptada.plano_id,
@@ -188,15 +184,16 @@ const fetchDados = async () => {
     });
 
   } catch (error) {
-    console.error("Erro ao buscar dados da inscrição:", error.response || error);
-    errorMessage.value = "Erro ao carregar os dados da inscrição. Verifique a rota ou o token.";
+    console.error("Erro ao buscar dados:", error);
+    errorMessage.value = "Erro ao carregar os dados.";
   } finally {
     loading.value = false;
   }
 };
 
-// 2. Lógica de Seleção de Horários (Toggle)
 const toggleHorario = (id) => {
+    if (isCancelada.value) return; // Bloqueio extra no clique
+
     const horario = horariosAgenda.value.find(h => h.id === id);
     const limite = limiteHorarios.value;
 
@@ -217,8 +214,9 @@ const toggleHorario = (id) => {
     }
 };
 
-// 3. Submissão do Formulário
 const submitForm = async () => {
+  if (isCancelada.value) return; // Segurança
+
   saving.value = true;
   errorMessage.value = '';
   successMessage.value = '';
@@ -241,7 +239,6 @@ const submitForm = async () => {
 
     successMessage.value = 'Inscrição atualizada com sucesso!';
 
-    // Atualiza os dados da tela com a resposta fresca (também adaptada)
     const responseData = response.data.data || response.data;
     inscricao.value = adaptarEstruturaParaTemplate(responseData);
 
@@ -254,18 +251,17 @@ const submitForm = async () => {
     }, 1500);
 
   } catch (error) {
-    console.error("Erro ao atualizar inscrição:", error.response || error);
-    if (error.response && error.response.data && error.response.status === 422) {
+    console.error("Erro ao atualizar:", error);
+    if (error.response && error.response.status === 422) {
         errorMessage.value = error.response.data.message || 'Erro de validação.';
     } else {
-        errorMessage.value = 'Falha crítica ao salvar. Verifique o servidor.';
+        errorMessage.value = 'Falha crítica ao salvar.';
     }
   } finally {
     saving.value = false;
   }
 };
 
-// 4. Funções de Utilidade
 const formatarDiaSemana = (dia) => {
   const dias = ['Dom', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
   return dias[dia === 7 ? 0 : dia];

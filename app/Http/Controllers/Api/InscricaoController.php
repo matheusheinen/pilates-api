@@ -106,7 +106,6 @@ class InscricaoController extends Controller
         try {
             DB::transaction(function () use ($inscricao, $dadosValidados, $inscricaoId) {
 
-                // 1. Atualiza Inscrição
                 $inscricao->update([
                     'plano_id' => $dadosValidados['plano_id'],
                     'status' => $dadosValidados['status'],
@@ -115,9 +114,15 @@ class InscricaoController extends Controller
                 $statusPivo = ($dadosValidados['status'] === 'ativa' || $dadosValidados['status'] === 'trancada') ? 'ativo' : 'inativo';
                 $now = Carbon::now();
 
-                // 2. Atualiza Horários (Abordagem Manual Segura)
+                // --- CORREÇÃO DE AULAS (ADICIONADO) ---
+                // Cancela TODAS as aulas futuras antes de mudar os horários.
+                // Isso garante que as aulas dos horários antigos deixem de estar "agendadas".
+                $inscricao->cancelarAulasFuturas();
+
+                // 1. Remove antigos vínculos
                 DB::table('horarios_aluno')->where('inscricao_id', $inscricaoId)->delete();
 
+                // 2. Insere novos vínculos
                 $insertData = [];
                 foreach ($dadosValidados['horarios_agenda_ids'] as $idAgenda) {
                     $insertData[] = [
@@ -136,11 +141,12 @@ class InscricaoController extends Controller
 
                 // 3. GESTÃO DE AULAS E MENSALIDADES
                 if ($dadosValidados['status'] === 'ativa') {
-                    // A. Gera Aulas
+                    // A. Gera Aulas (Para os NOVOS horários)
+                    // Nota: A função gerarAulasFuturas que ajustamos antes vai pegar as aulas
+                    // que acabamos de cancelar e REATIVAR apenas se elas baterem com o novo horário.
                     $inscricao->gerarAulasFuturas();
 
-                    // B. Gera Mensalidade Futura (Se não existir)
-                    // Vencimento padrão: Dia 10 do próximo mês a partir de HOJE (data da reativação)
+                    // B. Gera Mensalidade Futura (Lógica mantida...)
                     $proximoVencimento = Carbon::now()->addMonth()->day(10);
 
                     $existeMensalidade = Mensalidade::where('inscricao_id', $inscricaoId)
@@ -149,7 +155,7 @@ class InscricaoController extends Controller
                         ->exists();
 
                     if (!$existeMensalidade) {
-                        $inscricao->load('plano'); // Garante preço atualizado
+                        $inscricao->load('plano');
                         Mensalidade::create([
                             'inscricao_id' => $inscricaoId,
                             'data_vencimento' => $proximoVencimento,
@@ -159,13 +165,8 @@ class InscricaoController extends Controller
                     }
 
                 } else {
-                    // Status: inativa, cancelada, trancada
-
-                    // A. Cancela Aulas Futuras
-                    $inscricao->cancelarAulasFuturas();
-
-                    // B. Exclui Mensalidades Pendentes Futuras
-                    // Apenas removemos cobranças futuras que ainda não foram pagas.
+                    // Se não for ativa, já cancelamos tudo lá em cima,
+                    // mas limpamos as mensalidades pendentes aqui.
                     Mensalidade::where('inscricao_id', $inscricaoId)
                         ->where('status', 'pendente')
                         ->where('data_vencimento', '>=', Carbon::now())
