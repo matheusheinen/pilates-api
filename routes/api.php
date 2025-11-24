@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InscricaoController;
 use App\Http\Controllers\Api\HorarioAgendaController;
 use App\Http\Controllers\Api\PlanoController;
+use App\Http\Controllers\Api\MensalidadeController;
 
 // --- Rotas Públicas ---
 // Estas rotas não requerem autenticação.
@@ -33,6 +34,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/agenda/atualizar', [AulaController::class, 'atualizarAgenda']);
 
+    Route::get('/mensalidades', [MensalidadeController::class, 'index']);
+    Route::post('/mensalidades', [MensalidadeController::class, 'store']); // Criar avulsa
+    Route::post('/mensalidades/gerar-massivo', [MensalidadeController::class, 'gerarMassivo']); // Gerar do mês
+    Route::post('/mensalidades/{id}/pagar', [MensalidadeController::class, 'registrarPagamento']); // Dar baixa
+
     // Recursos Principais (CRUDs)
     Route::apiResource('usuarios', UsuarioController::class)->except(['store']);
     Route::apiResource('avaliacoes-posturais', AvaliacaoPosturalController::class);
@@ -40,5 +46,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('aulas', AulaController::class);
     Route::apiResource('horarios-agenda', HorarioAgendaController::class);
     Route::apiResource('planos', PlanoController::class);
+
 });
 

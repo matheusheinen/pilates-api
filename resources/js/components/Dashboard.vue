@@ -23,7 +23,7 @@
                 <button
                   v-else
                   @click="handleLogout"
-                  class="flex items-center space-x-3 p-2 rounded-lg w-full text-left transition duration-150 text-red-400 bg-red-900/20 hover:bg-red-800/30"
+                  class="flex items-center space-x-3 p-2 rounded-lg w-full text-left transition duration-150 text-red-400 hover:bg-red-500/10 hover:text-red-300"
                 >
                   <component :is="item.icon" class="w-5 h-5" />
                   <span class="font-medium text-sm">{{ item.label }}</span>
@@ -34,11 +34,11 @@
       </div>
     </nav>
 
-    <main class="flex-grow p-6 sm:p-10 ml-64">
-      <header class="flex justify-end items-center mb-8">
-        <div class="text-right">
-          <p class="font-semibold">{{ usuario.nome }}</p>
-          <p class="text-sm text-[#a0a0a0] capitalize">{{ usuario.tipo }}</p>
+    <main class="flex-1 ml-64 p-8">
+      <header class="flex justify-between items-center mb-8">
+        <div>
+          <h1 class="text-3xl font-bold text-white">Bem-vindo, <span class="text-teal-500">{{ usuario.nome }}</span></h1>
+          <p class="text-gray-400 text-sm mt-1">Painel de Controle - Sistema Pilates</p>
         </div>
       </header>
 
@@ -53,19 +53,20 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-// ÍCONES: CreditCard adicionado para Planos
-import { UsersRound, CalendarCheck, Clock, LogOut, CreditCard } from 'lucide-vue-next';
+// ÍCONES: Adicionado Banknote para Mensalidades
+import { UsersRound, CalendarCheck, Clock, LogOut, CreditCard, Banknote } from 'lucide-vue-next';
 import logoUrl from '../../assets/logo.png';
 
 const router = useRouter();
 const usuario = ref(JSON.parse(localStorage.getItem('userData')) || {});
 
-// LISTA DE ITENS AJUSTADA: Planos re-adicionado
+// LISTA DE ITENS ATUALIZADA
 const menuItems = ref([
     { label: "Agenda", icon: CalendarCheck, routeName: 'dashboard-agenda' },
     { label: "Horários da Agenda", icon: Clock, routeName: 'dashboard-horarios' },
-    { label: "Planos", icon: CreditCard, routeName: 'Planos' }, // <<< RE-ADICIONADO
     { label: "Clientes", icon: UsersRound, routeName: 'dashboard-clientes' },
+    { label: "Planos", icon: CreditCard, routeName: 'Planos' },
+    { label: "Mensalidades", icon: Banknote, routeName: 'Mensalidades' }, // <--- NOVO ITEM
     { label: "Sair", icon: LogOut, action: 'logout' },
 ]);
 
@@ -86,12 +87,9 @@ const handleLogout = async () => {
 };
 
 onMounted(() => {
+    // Verifica se tem token
     if (!localStorage.getItem('authToken')) {
         router.push({ name: 'login' });
     }
 });
 </script>
-
-<style scoped>
-/* Estilos existentes */
-</style>

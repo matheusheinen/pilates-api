@@ -17,6 +17,7 @@ import Matricula from '../components/dashboard/Matricula.vue';
 import Planos from '../components/dashboard/Planos.vue';
 import Inscricoes from '../components/dashboard/Inscricoes.vue';
 import EditarInscricao from '../components/dashboard/EditarInscricao.vue';
+import Mensalidades from '../components/dashboard/Mensalidades.vue'; // <--- NOVO IMPORT
 
 // ------------------------------------------
 
@@ -34,6 +35,10 @@ const routes = [
             { path: 'horarios', name: 'dashboard-horarios', component: HorariosAgenda },
             { path: 'planos', name: 'Planos', component: Planos },
             { path: 'clientes', name: 'dashboard-clientes', component: Clientes },
+
+            // --- FINANCEIRO ---
+            { path: 'mensalidades', name: 'Mensalidades', component: Mensalidades }, // <--- NOVA ROTA
+
             {
                 path: 'clientes/:id',
                 name: 'detalhes-cliente',
@@ -65,16 +70,14 @@ const routes = [
                 props: true
             },
             {
-                // Rota de listagem (agora funciona com o filtro ?usuario_id=X)
                 path: 'inscricoes',
                 name: 'listagem-inscricoes',
-                component: Inscricoes // Componente de Listagem
+                component: Inscricoes
             },
             {
-                // Rota de edição de um contrato específico
                 path: 'inscricoes/:id/editar',
                 name: 'editar-inscricao',
-                component: EditarInscricao, // Componente de Edição
+                component: EditarInscricao,
                 props: true
             }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInscricaoRequest;
 use App\Http\Requests\UpdateInscricaoRequest;
 use App\Models\Inscricao;
+use App\Models\Mensalidade;
 use App\Models\HorarioAluno;
 use App\Models\HorarioAgenda;
 use Illuminate\Support\Facades\DB;
@@ -32,11 +33,12 @@ class InscricaoController extends Controller
 
     public function store(StoreInscricaoRequest $request): JsonResponse
     {
+        // ... (código do store mantido igual ao anterior) ...
+        // Vou omitir aqui para focar no update, mas mantenha o que fizemos antes.
         $dadosValidados = $request->validated();
 
         try {
             // Validação de Vagas
-            // Nota: Usamos 'horarios_aluno.status' para evitar ambiguidade na contagem
             $horariosAValidar = HorarioAgenda::whereIn('id', $dadosValidados['horarios_agenda_ids'])
                 ->withCount(['horariosAluno as ocupacao' => function ($query) {
                     $query->where('horarios_aluno.status', 'ativo');
@@ -56,7 +58,6 @@ class InscricaoController extends Controller
                     'status' => 'ativa',
                 ]);
 
-                // Inserção Manual na Pivot (Segura)
                 $pivotData = [];
                 $now = Carbon::now();
                 foreach ($dadosValidados['horarios_agenda_ids'] as $id) {
@@ -71,6 +72,18 @@ class InscricaoController extends Controller
                 DB::table('horarios_aluno')->insert($pivotData);
 
                 $inscricao->gerarAulasFuturas();
+
+                // GERA A PRIMEIRA MENSALIDADE
+                $inscricao->load('plano');
+                $primeiroVencimento = Carbon::parse($dadosValidados['data_inicio'])->addMonth()->day(10);
+
+                Mensalidade::create([
+                    'inscricao_id' => $inscricao->id,
+                    'data_vencimento' => $primeiroVencimento,
+                    'valor' => $inscricao->plano->preco,
+                    'status' => 'pendente'
+                ]);
+
                 return $inscricao;
             });
 
@@ -81,7 +94,9 @@ class InscricaoController extends Controller
         }
     }
 
-    // Método UPDATE Manual para evitar erros de injeção
+    /**
+     * Atualiza o Contrato, Horários, Aulas e MENSALIDADES.
+     */
     public function update(UpdateInscricaoRequest $request, $id): JsonResponse
     {
         $dadosValidados = $request->validated();
@@ -91,6 +106,7 @@ class InscricaoController extends Controller
         try {
             DB::transaction(function () use ($inscricao, $dadosValidados, $inscricaoId) {
 
+                // 1. Atualiza Inscrição
                 $inscricao->update([
                     'plano_id' => $dadosValidados['plano_id'],
                     'status' => $dadosValidados['status'],
@@ -99,10 +115,9 @@ class InscricaoController extends Controller
                 $statusPivo = ($dadosValidados['status'] === 'ativa' || $dadosValidados['status'] === 'trancada') ? 'ativo' : 'inativo';
                 $now = Carbon::now();
 
-                // 1. Remove antigos
+                // 2. Atualiza Horários (Abordagem Manual Segura)
                 DB::table('horarios_aluno')->where('inscricao_id', $inscricaoId)->delete();
 
-                // 2. Insere novos
                 $insertData = [];
                 foreach ($dadosValidados['horarios_agenda_ids'] as $idAgenda) {
                     $insertData[] = [
@@ -119,10 +134,42 @@ class InscricaoController extends Controller
 
                 $inscricao->refresh();
 
+                // 3. GESTÃO DE AULAS E MENSALIDADES
                 if ($dadosValidados['status'] === 'ativa') {
+                    // A. Gera Aulas
                     $inscricao->gerarAulasFuturas();
+
+                    // B. Gera Mensalidade Futura (Se não existir)
+                    // Vencimento padrão: Dia 10 do próximo mês a partir de HOJE (data da reativação)
+                    $proximoVencimento = Carbon::now()->addMonth()->day(10);
+
+                    $existeMensalidade = Mensalidade::where('inscricao_id', $inscricaoId)
+                        ->whereMonth('data_vencimento', $proximoVencimento->month)
+                        ->whereYear('data_vencimento', $proximoVencimento->year)
+                        ->exists();
+
+                    if (!$existeMensalidade) {
+                        $inscricao->load('plano'); // Garante preço atualizado
+                        Mensalidade::create([
+                            'inscricao_id' => $inscricaoId,
+                            'data_vencimento' => $proximoVencimento,
+                            'valor' => $inscricao->plano->preco,
+                            'status' => 'pendente'
+                        ]);
+                    }
+
                 } else {
+                    // Status: inativa, cancelada, trancada
+
+                    // A. Cancela Aulas Futuras
                     $inscricao->cancelarAulasFuturas();
+
+                    // B. Exclui Mensalidades Pendentes Futuras
+                    // Apenas removemos cobranças futuras que ainda não foram pagas.
+                    Mensalidade::where('inscricao_id', $inscricaoId)
+                        ->where('status', 'pendente')
+                        ->where('data_vencimento', '>=', Carbon::now())
+                        ->delete();
                 }
             });
 

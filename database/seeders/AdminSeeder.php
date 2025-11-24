@@ -18,7 +18,7 @@ class AdminSeeder extends Seeder
             'nome' => 'Matheus Heinen',
             'email' => 'matheus@pilates.com',
             'senha' => Hash::make('password'), // Senha padrão 'password'
-            'tipo' => 'admin',
+            'tipo' => 'aluno',
             // Adicione outros campos obrigatórios se houver (cpf, telefone, etc.)
         ]);
 
