@@ -24,27 +24,44 @@ class AulaController extends Controller
         $usuarioLogado = Auth::user();
 
         if ($usuarioLogado->tipo === 'aluno') {
-            // Encontra a inscrição ativa do aluno logado
             $inscricao = Inscricao::where('usuario_id', $usuarioLogado->id)->where('status', 'ativa')->first();
             if ($inscricao) {
                 $query->where('inscricao_id', $inscricao->id);
             } else {
-                // Se o aluno não tem inscrição ativa, não retorna nenhuma aula
                 return response()->json([]);
             }
         }
 
-        // Filtra por mês, se o parâmetro 'mes' for enviado (formato YYYY-MM)
         if ($request->has('mes')) {
             $mes = $request->input('mes');
-            $dataInicio = Carbon::createFromFormat('Y-m', $mes)->startOfMonth();
-            $dataFim = Carbon::createFromFormat('Y-m', $mes)->endOfMonth();
-            $query->whereBetween('data_hora_inicio', [$dataInicio, $dataFim]);
+            try {
+                $dataInicio = Carbon::createFromFormat('Y-m', $mes)->startOfMonth();
+                $dataFim = Carbon::createFromFormat('Y-m', $mes)->endOfMonth();
+                $query->whereBetween('data_hora_inicio', [$dataInicio, $dataFim]);
+            } catch (\Exception $e) {}
         }
 
-        $aulas = $query->with('inscricao.usuario')->orderBy('data_hora_inicio')->get();
+        $aulas = $query->with(['usuario', 'horario_agenda', 'inscricao.plano'])->get();
 
-        return response()->json($aulas);
+        $eventosAgregados = $aulas->map(function ($aula) {
+            return [
+                'id' => $aula->id,
+                'title' => $aula->usuario->nome,
+                'start' => $aula->data_hora_inicio,
+                'end' => Carbon::parse($aula->data_hora_inicio)->addMinutes($aula->duracao_minutos)->toDateTimeString(),
+                'backgroundColor' => $aula->status === 'realizada' ? '#10B981' : ($aula->status === 'cancelada' ? '#EF4444' : '#3B82F6'),
+                'borderColor' => $aula->status === 'realizada' ? '#059669' : ($aula->status === 'cancelada' ? '#B91C1C' : '#2563EB'),
+                'extendedProps' => [
+                    'status' => $aula->status,
+                    'usuario_id' => $aula->usuario_id,
+                    'plano' => $aula->inscricao->plano->nome ?? 'N/A',
+                    'data_aula' => Carbon::parse($aula->data_hora_inicio)->format('Y-m-d'),
+                    'horario_agenda_id' => $aula->horario_agenda_id,
+                ]
+            ];
+        });
+
+        return response()->json($eventosAgregados);
     }
 
     /**
@@ -157,35 +174,30 @@ class AulaController extends Controller
 
     public function atualizarAgenda(Request $request)
     {
-        // 1. Autorização: Apenas administradores
         if (Auth::user()->tipo !== 'admin') {
             return response()->json(['message' => 'Acesso não autorizado'], 403);
         }
 
-        // Os parâmetros '--dias' não são mais necessários,
-        // pois a nova lógica está no modelo Inscricao (gera até o dia 10 do próximo mês).
+        // CORREÇÃO: Array vazio, pois o comando não pede mais argumentos
         $parametros = [];
 
         try {
-            // 2. Chama o comando Artisan correto: 'agenda:atualizar'
+            // Chama o comando 'agenda:atualizar'
             Artisan::call('agenda:atualizar', $parametros);
 
             $output = Artisan::output();
 
             return response()->json([
-                'message' => 'Comando para atualizar a agenda foi executado com sucesso.',
+                'message' => 'Agenda atualizada com sucesso (Aulas passadas foram concluídas).',
                 'output' => $output
             ]);
 
         } catch (\Exception $e) {
-            // 3. Captura o erro real que está quebrando o Artisan Call
-            Log::error("Falha na atualização manual da agenda: " . $e->getMessage() . " em " . $e->getFile() . " na linha " . $e->getLine());
+            Log::error("Falha na atualização manual da agenda: " . $e->getMessage());
 
             return response()->json([
-                'message' => 'Erro interno ao executar a rotina de agenda. Verifique o log para detalhes.',
-                'error_detail' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'message' => 'Erro interno ao executar a rotina de agenda.',
+                'error_detail' => $e->getMessage()
             ], 500);
         }
     }

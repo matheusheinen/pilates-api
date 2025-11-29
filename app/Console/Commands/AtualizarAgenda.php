@@ -3,40 +3,34 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\Inscricao; // Certifique-se de importar
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
+use App\Models\Aula;
 
 class AgendaAtualizar extends Command
 {
-    // O nome que será usado no terminal: php artisan agenda:atualizar
-    // Opcional: Removendo o argumento {--dias}, já que a lógica está no modelo.
+    // 1. Assinatura LIMPA (sem {--dias})
     protected $signature = 'agenda:atualizar';
 
-    protected $description = 'Gera automaticamente as aulas futuras na agenda para todas as inscrições ativas (até o dia 10 do próximo mês).';
+    protected $description = 'Finaliza aulas passadas (muda status de agendada para realizada).';
 
     public function handle()
     {
-        // $dias foi removido. A lógica de data está agora em Inscricao::gerarAulasFuturas().
+        Log::info('Rotina de limpeza de agenda iniciada.');
 
-        $inscricoesAtivas = Inscricao::where('status', 'ativa')->get();
+        $agora = Carbon::now();
 
-        // Mensagem de log ajustada para refletir a nova lógica.
-        $this->info("Iniciando geração de aulas para {$inscricoesAtivas->count()} inscrições ativas, até o dia 10 do próximo mês...");
-        Log::info('Rotina de geração de agenda iniciada.');
+        // 2. Lógica ÚNICA: Atualizar o passado
+        // Busca aulas 'agendada' que já passaram da hora e marca como 'realizada'
+        $aulasAtualizadas = Aula::where('status', 'agendada')
+            ->where('data_hora_inicio', '<', $agora)
+            ->update(['status' => 'realizada']);
 
-        foreach ($inscricoesAtivas as $inscricao) {
-            try {
-                // Chama a lógica de geração para cada inscrição ativa
-                // O parâmetro $dias foi removido da chamada.
-                $inscricao->gerarAulasFuturas();
-                $this->line("• Aulas geradas para Aluno ID: {$inscricao->usuario_id}");
-            } catch (\Exception $e) {
-                $this->error("Falha ao gerar aulas para Inscrição ID {$inscricao->id}: " . $e->getMessage());
-                Log::error("Falha na geração de agenda. Inscricao ID {$inscricao->id}: " . $e->getMessage());
-            }
+        if ($aulasAtualizadas > 0) {
+            $this->info("✔ {$aulasAtualizadas} aulas passadas foram marcadas como 'realizada'.");
+            Log::info("Agenda: {$aulasAtualizadas} aulas finalizadas automaticamente.");
+        } else {
+            $this->info("• Nenhuma aula pendente no passado.");
         }
-
-        $this->info('Geração de agenda concluída.');
-        Log::info('Rotina de geração de agenda concluída.');
     }
 }

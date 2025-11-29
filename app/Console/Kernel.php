@@ -12,9 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Agora, apenas um comando é agendado para ser executado a cada hora.
-        // Ele vai gerar novas aulas E atualizar o status das aulas existentes.
-        $schedule->command('app:atualizar-agenda')->hourly();
+        // CORREÇÃO: O nome deve ser igual ao $signature do comando
+        $schedule->command('agenda:atualizar')->hourly();
     }
 
     /**

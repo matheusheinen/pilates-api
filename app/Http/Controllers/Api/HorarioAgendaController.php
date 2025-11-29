@@ -16,127 +16,171 @@ class HorarioAgendaController extends Controller
     public function index()
     {
         try {
-            // 1. A consulta busca apenas os horários ATIVOS (cadastrados pela professora)
-            $horarios = HorarioAgenda::where('status', 'ativo')
-
-                // 2. Com o withCount, incluímos o campo 'ocupacao' (essencial para Matrícula.vue)
-                // O Vue ignora essa informação se for só para listagem simples.
-                ->withCount(['horariosAluno as ocupacao' => function ($query) {
-                    // Contamos apenas os vínculos ativos para determinar a vaga real
+            $horarios = HorarioAgenda::withCount(['horariosAluno as ocupacao' => function ($query) {
                     $query->where('status', 'ativo');
                 }])
-
-                // 3. Ordenamos para a visualização correta na tela
                 ->orderBy('dia_semana')
                 ->orderBy('horario_inicio')
                 ->get();
 
-            // Retorna os dados no formato Resource Collection (com 'data')
             return response()->json(['data' => $horarios]);
 
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Erro interno do servidor ao carregar a agenda.',
+                'message' => 'Erro ao carregar a agenda.',
                 'error_detail' => $e->getMessage()
             ], 500);
         }
     }
 
-    /**
-     * ESTE É O MÉTODO QUE ESTAVA DANDO ERRO
-     * Agora ele busca pela contagem de vagas, não por inscricao_id
-     */
-    public function disponiveis(): JsonResponse
+    public function show($id)
     {
-        $horarios = HorarioAgenda::where('status', 'ativo')
-            ->withCount('inscricoes')
-            ->orderBy('dia_semana')
-            ->orderBy('horario_inicio')
-            ->get()
-            ->filter(function ($horario) {
-                // Usa o campo 'vagas_totais' do banco. Se for null, assume 3.
-                $limite = $horario->vagas_totais ?? 3;
-                // Só retorna se tiver vaga (inscritos < limite)
-                return $horario->inscricoes_count < $limite;
-            })
-            ->values(); // Reorganiza os índices do array
-
-        return response()->json($horarios);
+        return response()->json(HorarioAgenda::findOrFail($id));
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
-        $validated = $request->validate([
-            'dia_semana' => 'required',
-            'horario_inicio' => 'required',
-            'duracao_minutos' => 'required|integer',
-            'vagas_totais' => 'required|integer|min:1', // Valida o novo campo
+        // Validação básica dos campos
+        $request->validate([
+            'dia_semana' => 'required|integer|between:1,7',
+            'horario_inicio' => 'required', // formato H:i
+            'duracao_minutos' => 'required|integer|min:10',
+            'vagas_totais' => 'required|integer|min:1',
         ]);
 
-        $horario = HorarioAgenda::create($validated);
+        // --- VALIDAÇÃO DE CONFLITO DE HORÁRIO ---
+        $conflito = $this->verificarConflito(
+            $request->dia_semana,
+            $request->horario_inicio,
+            $request->duracao_minutos
+        );
+
+        if ($conflito) {
+            return response()->json([
+                'message' => 'Choque de horário! Já existe um horário cadastrado neste intervalo de tempo.'
+            ], 422);
+        }
+        // ----------------------------------------
+
+        $horario = HorarioAgenda::create($request->all());
+
         return response()->json($horario, 201);
     }
 
-    public function destroy($id): JsonResponse
-    {
-        $horario = HorarioAgenda::withCount('inscricoes')->findOrFail($id);
-
-        if ($horario->inscricoes_count > 0) {
-            return response()->json(['message' => 'Não é possível excluir horário com alunos matriculados.'], 409);
-        }
-
-        $horario->delete();
-        return response()->json(null, 204);
-    }
-
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request, $id)
     {
         $horarioAgenda = HorarioAgenda::findOrFail($id);
 
-        // Adicione a validação (idealmente em um Request, mas aqui direto para simplificar)
-        $validated = $request->validate([
-            'dia_semana' => 'required',
-            'horario_inicio' => 'required',
-            'duracao_minutos' => 'required|integer',
-            'vagas_totais' => 'required|integer|min:1',
-            'status' => 'required|string', // Adicionei status
+        $request->validate([
+            'dia_semana' => 'sometimes|integer|between:1,7',
+            'horario_inicio' => 'sometimes',
+            'duracao_minutos' => 'sometimes|integer|min:10',
         ]);
 
-        // Checa se os campos que afetam a aula mudaram
-        $horarioMudou = $horarioAgenda->horario_inicio != $validated['horario_inicio'] ||
-                        $horarioAgenda->duracao_minutos != $validated['duracao_minutos'];
+        // Dados para verificação (usa o novo se enviado, ou mantém o antigo)
+        $dia = $request->dia_semana ?? $horarioAgenda->dia_semana;
+        $inicio = $request->horario_inicio ?? $horarioAgenda->horario_inicio;
+        $duracao = $request->duracao_minutos ?? $horarioAgenda->duracao_minutos;
 
-        // 1. Atualiza o HorarioAgenda
-        $horarioAgenda->update($validated);
+        // --- VALIDAÇÃO DE CONFLITO DE HORÁRIO ---
+        // Passamos o ID atual para ignorar ele mesmo na verificação
+        $conflito = $this->verificarConflito($dia, $inicio, $duracao, $id);
 
-        // 2. Sincroniza as Aulas futuras
+        if ($conflito) {
+            return response()->json([
+                'message' => 'Choque de horário! A alteração conflita com outro horário existente.'
+            ], 422);
+        }
+        // ----------------------------------------
+
+        $horarioMudou = $horarioAgenda->horario_inicio != $inicio ||
+                       $horarioAgenda->duracao_minutos != $duracao;
+
+        // Atualiza
+        $horarioAgenda->update($request->all());
+
+        // Sincroniza Aulas Futuras se o horário mudou
         if ($horarioMudou) {
-            $dataAtual = Carbon::now();
-
-            // Encontra todas as Aulas futuras vinculadas a este HorarioAgenda e atualiza
-            Aula::where('horario_agenda_id', $horarioAgenda->id)
-                ->where('data_hora_inicio', '>', $dataAtual)
-                ->get()
-                ->each(function ($aula) use ($validated) {
-                    // a. Recalcula a data/hora de início
-                    $dataAntiga = Carbon::parse($aula->data_hora_inicio)->format('Y-m-d');
-                    $novaDataHoraInicio = Carbon::parse($dataAntiga . ' ' . $validated['horario_inicio']);
-
-                    // b. Atualiza a Aula
-                    $aula->update([
-                        'data_hora_inicio' => $novaDataHoraInicio,
-                        'duracao_minutos' => $validated['duracao_minutos'],
-                    ]);
-                });
+            $this->sincronizarAulasFuturas($horarioAgenda, $inicio, $duracao);
         }
 
-        // 3. (Opcional) Se o horário foi inativado, cancelar futuras aulas.
-        if ($validated['status'] === 'inativo') {
-            Aula::where('horario_agenda_id', $horarioAgenda->id)
-                ->where('data_hora_inicio', '>', Carbon::now())
-                ->update(['status' => 'cancelada']);
+        return response()->json($horarioAgenda);
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $horario = HorarioAgenda::withCount('horariosAluno')->findOrFail($id);
+
+            if ($horario->horarios_aluno_count > 0) {
+                return response()->json(['message' => 'Não é possível excluir. Existem alunos matriculados neste horário.'], 422);
+            }
+
+            $horario->delete();
+            return response()->json(['message' => 'Horário excluído com sucesso.']);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erro ao excluir: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Verifica se o novo horário colide com algum existente.
+     * Retorna TRUE se houver conflito.
+     */
+    private function verificarConflito($diaSemana, $horaInicio, $duracao, $ignorarId = null)
+    {
+        // 1. Calcula início e fim do NOVO horário
+        // Usamos uma data arbitrária (hoje) apenas para poder somar os minutos corretamente
+        $novoInicio = Carbon::parse($horaInicio);
+        $novoFim = $novoInicio->copy()->addMinutes($duracao);
+
+        // 2. Busca todos os horários do MESMO DIA
+        $query = HorarioAgenda::where('dia_semana', $diaSemana)
+            ->where('status', 'ativo'); // Opcional: só checa conflito com ativos
+
+        if ($ignorarId) {
+            $query->where('id', '!=', $ignorarId);
         }
 
-        return response()->json($horarioAgenda, 200);
+        $horariosExistentes = $query->get();
+
+        // 3. Compara com cada horário existente
+        foreach ($horariosExistentes as $existente) {
+            $existenteInicio = Carbon::parse($existente->horario_inicio);
+            $existenteFim = $existenteInicio->copy()->addMinutes($existente->duracao_minutos);
+
+            // Lógica de Colisão de Intervalos:
+            // (InicioA < FimB) E (FimA > InicioB)
+            // Se isso for verdade, os horários se sobrepõem.
+            if ($novoInicio->lessThan($existenteFim) && $novoFim->greaterThan($existenteInicio)) {
+                return true; // Encontrou conflito
+            }
+        }
+
+        return false; // Sem conflitos
+    }
+
+    /**
+     * Atualiza as aulas agendadas no futuro para refletir a mudança no horário base.
+     */
+    private function sincronizarAulasFuturas($horarioAgenda, $novoInicio, $novaDuracao)
+    {
+        $dataAtual = Carbon::now();
+
+        Aula::where('horario_agenda_id', $horarioAgenda->id)
+            ->where('data_hora_inicio', '>', $dataAtual)
+            ->where('status', 'agendada') // Só altera aulas agendadas
+            ->get()
+            ->each(function ($aula) use ($novoInicio, $novaDuracao) {
+                // Mantém a data original da aula, muda apenas a hora
+                $dataOriginal = Carbon::parse($aula->data_hora_inicio)->format('Y-m-d');
+                $novaDataHora = Carbon::parse($dataOriginal . ' ' . $novoInicio);
+
+                $aula->update([
+                    'data_hora_inicio' => $novaDataHora,
+                    'duracao_minutos' => $novaDuracao,
+                ]);
+            });
     }
 }
