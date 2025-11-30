@@ -3,7 +3,7 @@
   <div v-else-if="cliente" class="space-y-6">
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-bold text-white">{{ cliente.nome }}</h2>
-      <router-link to="/dashboard/clientes" class="text-sm font-semibold text-teal-500 hover:text-teal-400">&larr; Voltar para a lista</router-link>
+      <router-link :to="{ name: 'admin-clientes' }" class="text-sm font-semibold text-teal-500 hover:text-teal-400">&larr; Voltar para a lista</router-link>
     </div>
 
     <div class="bg-[#151515] p-6 rounded-xl">
@@ -11,22 +11,21 @@
         <div class="flex flex-wrap gap-4">
 
             <router-link :to="{ name: 'avaliacao-postural', params: { id: cliente.id } }" class="action-button-sm">
-              Cadastrar Nova Ficha
+              Registrar Nova Avaliação Postural
             </router-link>
 
-
             <router-link
-                :to="{ name: 'listagem-inscricoes', query: { usuario_id: cliente.id } }"
+                :to="{ name: 'admin-inscricoes', query: { usuario_id: cliente.id } }"
                 class="action-button-sm bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
                 Ver Contratos (Histórico)
             </router-link>
 
-
-
-            <button class="action-button-sm bg-yellow-600 hover:bg-yellow-500">Histórico de Pagamentos</button>
+            <router-link
+                :to="{ name: 'historico-pagamentos', params: { id: cliente.id } }"
+                class="action-button-sm bg-yellow-600 hover:bg-yellow-500 text-white flex items-center justify-center transition-colors"
+            >
+                Ver Pagamentos (Histórico)
+            </router-link>
         </div>
     </div>
 
@@ -100,7 +99,7 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{{ ficha.observacoes || 'N/A' }}</td>
 
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-              <router-link :to="{ name: 'VisualizarAvaliacao', params: { id: ficha.id } }" class="text-teal-500 hover:text-teal-400">
+              <router-link :to="{ name: 'visualizar-avaliacao', params: { id: ficha.id } }" class="text-teal-500 hover:text-teal-400">
                 Visualizar
               </router-link>
             </td>
@@ -134,11 +133,8 @@ const loading = ref(true);
 const avaliacoes = ref([]);
 const loadingAvaliacoes = ref(true);
 
-// COMPUTED: Pega a avaliação mais recente para exibir no topo
 const ultimaAvaliacao = computed(() => {
     if (avaliacoes.value && avaliacoes.value.length > 0) {
-        // Ordena descrescente por data (assumindo string ISO 'YYYY-MM-DD')
-        // Se a API já devolver ordenado, o .sort é apenas garantia
         const sorted = [...avaliacoes.value].sort((a, b) => new Date(b.data_avaliacao) - new Date(a.data_avaliacao));
         return sorted[0];
     }
@@ -148,7 +144,6 @@ const ultimaAvaliacao = computed(() => {
 const fetchCliente = async () => {
   try {
     const response = await axios.get(`/api/usuarios/${props.id}`);
-    // Ajustado conforme retorno padrão do Laravel Resources
     cliente.value = response.data.data || response.data;
   } catch (error) {
     console.error("Erro ao buscar dados do cliente:", error);
@@ -160,7 +155,6 @@ const fetchCliente = async () => {
 const fetchAvaliacoes = async () => {
   try {
     const response = await axios.get(`/api/usuarios/${props.id}/avaliacoes`);
-    // Garante array mesmo se vazio
     if (response.data && Array.isArray(response.data.data)) {
       avaliacoes.value = response.data.data;
     } else if (Array.isArray(response.data)) {
@@ -177,16 +171,15 @@ const fetchAvaliacoes = async () => {
 };
 
 const irParaEdicao = () => {
-  router.push({ name: 'EditarCliente', params: { id: props.id } });
+  // CORREÇÃO 3: Atualizado para 'editar-cliente'
+  router.push({ name: 'editar-cliente', params: { id: props.id } });
 };
 
 const formatarData = (data) => {
   if (!data) return 'N/A';
-  // Ajuste para timezone local se necessário
   return new Date(data).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 };
 
-// Helper simples para CPF (caso o back-end não mande formatado)
 const formatarCPF = (cpf) => {
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 };

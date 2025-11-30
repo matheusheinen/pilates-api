@@ -104,4 +104,13 @@ class Inscricao extends Model
             ->where('status', 'agendada')
             ->update(['status' => 'cancelada']);
     }
+
+    public function deletarAulasFuturas(): int
+    {
+         $agora = Carbon::now();
+         return \App\Models\Aula::where('inscricao_id', $this->id)
+            ->where('data_hora_inicio', '>=', $agora)
+            ->where('status', 'agendada')
+            ->delete();
+    }
 }

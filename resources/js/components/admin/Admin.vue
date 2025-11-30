@@ -55,18 +55,18 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 // ÍCONES: Adicionado Banknote para Mensalidades
 import { UsersRound, CalendarCheck, Clock, LogOut, CreditCard, Banknote } from 'lucide-vue-next';
-import logoUrl from '../../assets/logo.png';
+import logoUrl from '../../../assets/logo.png';
 
 const router = useRouter();
 const usuario = ref(JSON.parse(localStorage.getItem('userData')) || {});
 
 // LISTA DE ITENS ATUALIZADA
 const menuItems = ref([
-    { label: "Agenda", icon: CalendarCheck, routeName: 'dashboard-agenda' },
-    { label: "Horários da Agenda", icon: Clock, routeName: 'dashboard-horarios' },
-    { label: "Clientes", icon: UsersRound, routeName: 'dashboard-clientes' },
-    { label: "Planos", icon: CreditCard, routeName: 'Planos' },
-    { label: "Mensalidades", icon: Banknote, routeName: 'Mensalidades' }, // <--- NOVO ITEM
+    { label: "Agenda", icon: CalendarCheck, routeName: 'admin-agenda' },
+    { label: "Horários da Agenda", icon: Clock, routeName: 'admin-horarios' },
+    { label: "Clientes", icon: UsersRound, routeName: 'admin-clientes' },
+    { label: "Planos", icon: CreditCard, routeName: 'admin-planos' },
+    { label: "Mensalidades", icon: Banknote, routeName: 'admin-mensalidades' }, // <--- NOVO ITEM
     { label: "Sair", icon: LogOut, action: 'logout' },
 ]);
 

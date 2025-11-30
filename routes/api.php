@@ -29,15 +29,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/usuarios/{id}/avaliacoes', [UsuarioController::class, 'avaliacoesPosturais']);
 
     Route::get('/aulas/disponiveis', [AulaController::class, 'listarDisponiveis']);
-
     Route::get('/aulas/calendario', [AulaController::class, 'listagemCalendario']);
+    Route::get('/aulas/disponiveis-reagendamento', [AulaController::class, 'disponiveisParaReagendamento']);
+    Route::post('/aulas/{id}/reagendar', [AulaController::class, 'reagendar']);
+    Route::post('/aulas/cancelar-turma', [AulaController::class, 'cancelarTurma']);
+    Route::post('/aulas/reagendar-turma', [AulaController::class, 'reagendarTurma']);
 
     Route::post('/agenda/atualizar', [AulaController::class, 'atualizarAgenda']);
 
     Route::get('/mensalidades', [MensalidadeController::class, 'index']);
     Route::post('/mensalidades', [MensalidadeController::class, 'store']); // Criar avulsa
     Route::post('/mensalidades/gerar-massivo', [MensalidadeController::class, 'gerarMassivo']); // Gerar do mês
-    Route::post('/mensalidades/{id}/pagar', [MensalidadeController::class, 'registrarPagamento']); // Dar baixa
+    Route::post('/mensalidades/{id}/pagar', [MensalidadeController::class, 'registrarPagamento']);
+    Route::post('/mensalidades/{id}/comprovante', [MensalidadeController::class, 'enviarComprovante']);
+    Route::post('/mensalidades/{id}/aprovar', [MensalidadeController::class, 'aprovarPagamento']);
+    Route::post('/mensalidades/{id}/rejeitar', [MensalidadeController::class, 'rejeitarPagamento']);
 
     // Recursos Principais (CRUDs)
     Route::apiResource('usuarios', UsuarioController::class)->except(['store']);

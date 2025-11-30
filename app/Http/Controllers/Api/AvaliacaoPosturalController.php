@@ -30,21 +30,15 @@ class AvaliacaoPosturalController extends Controller
         return response()->json($avaliacaoPostural, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    /**
-     * Display the specified resource.
-     */
-    public function show(AvaliacaoPostural $avaliacaoPostural)
+
+    public function show($id) // Recebe o ID diretamente em vez do Model
     {
-        // --- INÍCIO DA CORREÇÃO ---
-        // Verifica se o frontend pediu ?with=usuario na URL
+        // Busca manual (Garante que o erro 404 apareça se não achar)
+        $avaliacaoPostural = AvaliacaoPostural::findOrFail($id);
+
         if (request()->has('with') && request('with') == 'usuario') {
-            // Se sim, carrega a relação 'usuario' que existe no Modelo
             $avaliacaoPostural->load('usuario');
         }
-        // --- FIM DA CORREÇÃO ---
 
         return response()->json([
             'data' => $avaliacaoPostural

@@ -6,13 +6,6 @@
         <h3 class="text-lg font-semibold">Gestão de Mensalidades</h3>
         <p class="text-[#a0a0a0]">Controle de pagamentos, vencimentos e comprovantes.</p>
       </div>
-
-      <div>
-        <button @click="gerarMensalidades" :disabled="gerando" class="w-full sm:w-auto px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 font-semibold transition-colors text-sm flex items-center justify-center gap-2 border border-gray-600">
-          <span v-if="gerando" class="animate-spin">↻</span>
-          <span>{{ gerando ? 'Gerando...' : 'Gerar Mensalidades do Mês' }}</span>
-        </button>
-      </div>
     </div>
 
     <div class="bg-[#1e1e1e] p-4 rounded-xl border border-[#333] mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end shadow-sm">

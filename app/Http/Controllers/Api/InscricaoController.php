@@ -117,7 +117,7 @@ class InscricaoController extends Controller
                 // --- CORREÇÃO DE AULAS (ADICIONADO) ---
                 // Cancela TODAS as aulas futuras antes de mudar os horários.
                 // Isso garante que as aulas dos horários antigos deixem de estar "agendadas".
-                $inscricao->cancelarAulasFuturas();
+                $inscricao->deletarAulasFuturas();
 
                 // 1. Remove antigos vínculos
                 DB::table('horarios_aluno')->where('inscricao_id', $inscricaoId)->delete();

@@ -46,14 +46,6 @@
             </div>
           </div>
 
-          <div v-if="modoEdicao">
-            <label class="block text-xs text-gray-400 mb-1">Status</label>
-            <select v-model="form.status" class="form-input-style">
-                <option value="ativo">Ativo</option>
-                <option value="inativo">Inativo</option>
-            </select>
-          </div>
-
           <div class="flex gap-2 pt-2">
               <button v-if="modoEdicao" type="button" @click="cancelarEdicao" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 rounded-lg transition-colors text-sm">
                 Cancelar

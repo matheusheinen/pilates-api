@@ -8,6 +8,7 @@ use App\Models\Inscricao;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 
@@ -18,7 +19,23 @@ class MensalidadeController extends Controller
      */
     public function index(Request $request)
     {
+        // --- AUTO-ATUALIZAÇÃO DE STATUS (NOVO) ---
+        // Antes de listar, verifica se existem mensalidades 'pendente' vencidas
+        // e atualiza para 'atrasada'.
+        Mensalidade::where('status', 'pendente')
+            ->where('data_vencimento', '<', Carbon::now()->format('Y-m-d'))
+            ->update(['status' => 'atrasada']);
+        // ------------------------------------------
+
         $query = Mensalidade::with(['inscricao.usuario', 'inscricao.plano', 'pagamento']);
+
+        // Filtro de Segurança para Aluno
+        $user = Auth::user(); // ou Auth::user() se preferir
+        if ($user && $user->tipo === 'aluno') {
+             $query->whereHas('inscricao', function($q) use ($user) {
+                $q->where('usuario_id', $user->id);
+            });
+        }
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);

@@ -4,7 +4,7 @@
 
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-bold text-white">Editar Inscrição: <span class="text-teal-500">{{ inscricao.usuario?.nome || 'N/A' }}</span></h2>
-      <router-link :to="{ name: 'listagem-inscricoes', query: inscricao.usuario_id ? { usuario_id: inscricao.usuario_id } : {} }" class="text-sm font-semibold text-teal-500 hover:text-teal-400 flex items-center gap-1">
+      <router-link :to="{ name: 'admin-inscricoes', query: inscricao.usuario_id ? { usuario_id: inscricao.usuario_id } : {} }" class="text-sm font-semibold text-teal-500 hover:text-teal-400 flex items-center gap-1">
         <span>&larr;</span> Voltar para a Listagem
       </router-link>
     </div>

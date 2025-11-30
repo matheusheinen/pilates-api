@@ -68,26 +68,37 @@ import { useRouter } from 'vue-router';
 import logoUrl from '../../assets/logo.png';
 
 const router = useRouter();
-// CORREÇÃO: Renomeia 'email' para 'login'
 const form = reactive({ login: '', senha: '' });
 const errorMessage = ref('');
 const showPassword = ref(false);
+
 const passwordFieldType = computed(() => showPassword.value ? 'text' : 'password');
 const togglePassword = () => { showPassword.value = !showPassword.value; };
 
 const handleLogin = async () => {
     errorMessage.value = '';
     try {
-        // A Axios envia 'login' e 'senha' para a API
         const response = await axios.post('/api/login', form);
 
-        localStorage.setItem('authToken', response.data.access_token);
-        localStorage.setItem('userData', JSON.stringify(response.data.usuario));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
-        router.push({ name: 'dashboard-agenda' });
+        // 1. Salva Token e Dados
+        const token = response.data.access_token;
+        const usuario = response.data.usuario; // Certifique-se que o backend retorna 'usuario' com o campo 'tipo'
+
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('userData', JSON.stringify(usuario));
+
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        // 2. REDIRECIONAMENTO INTELIGENTE
+        // Verifica o tipo do usuário para enviar para a área correta
+        if (usuario.tipo === 'admin') {
+            router.push({ name: 'admin-agenda' }); // Área do Admin
+        } else {
+            router.push({ name: 'aluno-home' });  // Área do Aluno
+        }
+
     } catch (error) {
-        // Se a API retornar o erro 401 que configuramos, exibe a mensagem de falha
-        errorMessage.value = 'Email, Celular ou senha inválidos.';
+        errorMessage.value = 'Login ou senha inválidos.';
         console.error("Erro no Login:", error);
     }
 };
