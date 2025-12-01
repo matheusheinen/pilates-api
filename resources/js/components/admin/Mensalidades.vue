@@ -65,9 +65,17 @@
               <td class="px-6 py-4 text-right">
 
                 <div v-if="mensalidade.status === 'em_analise'" class="flex justify-end items-center gap-2">
-                    <button @click="verComprovante(mensalidade.pagamento?.comprovante_path)" class="text-blue-400 hover:text-blue-300 text-xs underline mr-2" title="Ver Comprovante">
+
+                    <a
+                      v-if="mensalidade.pagamento && mensalidade.pagamento.comprovante_path"
+                      :href="'/storage/' + mensalidade.pagamento.comprovante_path"
+                      target="_blank"
+                      class="text-blue-400 hover:text-blue-300 text-xs underline mr-2 cursor-pointer"
+                      title="Abrir anexo em nova aba"
+                    >
                         Ver Anexo
-                    </button>
+                    </a>
+
                     <button @click="aprovar(mensalidade.id)" class="bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white border border-green-600/50 p-1.5 rounded transition" title="Aprovar">
                         ✓
                     </button>
@@ -84,9 +92,15 @@
 
                 <div v-else-if="mensalidade.status === 'paga'" class="text-xs text-gray-500 flex flex-col items-end">
                     <span class="text-green-500/70 font-semibold">Pago em {{ formatarData(mensalidade.pagamento?.data_pagamento) }}</span>
-                    <button v-if="mensalidade.pagamento?.comprovante_path" @click="verComprovante(mensalidade.pagamento?.comprovante_path)" class="text-blue-500 hover:text-blue-400 underline mt-1">
+
+                    <a
+                      v-if="mensalidade.pagamento && mensalidade.pagamento.comprovante_path"
+                      :href="'/storage/' + mensalidade.pagamento.comprovante_path"
+                      target="_blank"
+                      class="text-blue-500 hover:text-blue-400 underline mt-1 cursor-pointer"
+                    >
                         Ver Comprovante
-                    </button>
+                    </a>
                 </div>
 
               </td>
@@ -175,8 +189,6 @@ const formPagamento = reactive({
     metodo_pagamento: 'pix'
 });
 
-// --- FUNÇÕES DE BUSCA E LISTAGEM ---
-
 const fetchMensalidades = async (page = 1) => {
     loading.value = true;
     try {
@@ -197,11 +209,8 @@ const mudarPagina = (page) => {
     }
 };
 
-// --- FUNÇÕES DE AÇÃO DO ADMIN ---
-
 const gerarMensalidades = async () => {
     if (!confirm('Deseja gerar as mensalidades para todas as inscrições ativas que ainda não possuem cobrança para este mês?')) return;
-
     gerando.value = true;
     try {
         const response = await axios.post('/api/mensalidades/gerar-massivo');
@@ -235,21 +244,11 @@ const rejeitar = async (id) => {
     }
 };
 
-const verComprovante = (path) => {
-    if (!path) return;
-    const url = `/storage/${path}`;
-    window.open(url, '_blank');
-};
-
-// --- MODAL DE BAIXA MANUAL ---
-
 const abrirModalPagamento = (mensalidade) => {
     mensalidadeSelecionada.value = mensalidade;
-
     const hoje = new Date();
     const offset = hoje.getTimezoneOffset();
     const dataLocal = new Date(hoje.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
-
     formPagamento.data_pagamento = dataLocal;
     formPagamento.valor_pago = mensalidade.valor;
     formPagamento.metodo_pagamento = 'pix';
@@ -264,7 +263,6 @@ const fecharModal = () => {
 const confirmarPagamentoManual = async () => {
     if (!mensalidadeSelecionada.value) return;
     salvandoPagamento.value = true;
-
     try {
         await axios.post(`/api/mensalidades/${mensalidadeSelecionada.value.id}/pagar`, formPagamento);
         filtros.mes = '';
@@ -277,8 +275,6 @@ const confirmarPagamentoManual = async () => {
         salvandoPagamento.value = false;
     }
 };
-
-// --- HELPERS ---
 
 const formatarPreco = (val) => parseFloat(val).toFixed(2).replace('.', ',');
 const formatarData = (data) => {

@@ -1,175 +1,176 @@
 <template>
-  <div v-if="loading" class="text-center text-gray-400 mt-10">Carregando dados...</div>
-  <div v-else-if="cliente" class="space-y-6">
+  <div class="bg-[#151515] p-6 rounded-xl text-white">
 
-    <div class="flex justify-between items-center">
-      <h2 class="text-2xl font-bold text-white">Editar Cadastro: <span class="text-teal-500">{{ cliente.nome }}</span></h2>
-      <router-link :to="{ name: 'detalhes-cliente', params: { id: props.id } }" class="text-sm font-semibold text-teal-500 hover:text-teal-400 flex items-center gap-1">
-        <span>&larr;</span> Voltar
-      </router-link>
+    <div v-if="loading" class="flex flex-col items-center justify-center py-20 text-gray-500">
+        <svg class="animate-spin h-10 w-10 mb-4 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <span class="text-base font-medium">Carregando dados do aluno...</span>
     </div>
 
-    <form @submit.prevent="submitForm" class="bg-[#151515] p-8 rounded-xl border border-white/10 space-y-6">
-
-      <div v-if="errorMessage" class="bg-red-500/20 border border-red-700 text-red-300 text-sm p-3 rounded-lg">
-          {{ errorMessage }}
+    <div v-else-if="cliente">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h3 class="text-lg font-semibold">Editar Cliente</h3>
+          <p class="text-[#a0a0a0]">Atualize os dados de <span class="text-teal-400 font-medium">{{ cliente.nome }}</span>.</p>
+        </div>
+        <router-link
+          :to="{ name: 'detalhes-cliente', params: { id: props.id } }"
+          class="text-gray-400 hover:text-white transition-colors flex items-center gap-2 text-sm"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          Voltar
+        </router-link>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-xs text-gray-400 mb-1 ml-1">Nome Completo</label>
-          <input v-model="form.nome" type="text" class="form-input" required />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-400 mb-1 ml-1">Email</label>
-          <input v-model="form.email" type="email" class="form-input" required />
-        </div>
-      </div>
+      <div class="bg-[#121212]/20 backdrop-blur-lg border border-white/10 p-8 rounded-3xl shadow-lg w-full max-w-4xl mx-auto">
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-         <div>
-          <label class="block text-xs text-gray-400 mb-1 ml-1">Celular</label>
-          <input
-            v-model="form.celular"
-            @input="formatarCelular"
-            maxlength="15"
-            type="text"
-            class="form-input"
-          />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-400 mb-1 ml-1">Profissão</label>
-          <input v-model="form.profissao" type="text" class="form-input" />
-        </div>
-      </div>
+        <form @submit.prevent="submitForm" class="space-y-6">
 
-      <div class="grid grid-cols-1 gap-6">
-        <div>
-          <label class="block text-xs text-gray-400 mb-1 ml-1">Data de Nascimento</label>
-          <input v-model="form.data_nascimento" type="date" class="form-input" />
-        </div>
-      </div>
+          <div v-if="errorMessage" class="bg-red-500/20 border border-red-700 text-red-300 text-sm p-3 rounded-lg flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ errorMessage }}
+          </div>
 
-      <div class="p-4 border border-gray-700 rounded-lg bg-[#101010]">
-        <h4 class="text-sm font-semibold text-teal-500 mb-4">Alterar Senha (Opcional)</h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="block text-xs text-gray-400 mb-1 ml-1">Nova Senha (Min 8 carac.)</label>
-                <input
-                    v-model="form.senha"
-                    type="password"
-                    class="form-input border-gray-600 placeholder-gray-600 focus:border-teal-500"
-                    placeholder="Deixe vazio para manter a atual"
-                    minlength="8"
-                />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-sm text-gray-400 mb-1 ml-1">Nome Completo</label>
+              <input v-model="form.nome" type="text" required class="form-input">
             </div>
-            <div>
-                <label class="block text-xs text-gray-400 mb-1 ml-1">Confirmar Nova Senha</label>
-                <input
-                    v-model="form.confirmarSenha"
-                    type="password"
-                    class="form-input border-gray-600 placeholder-gray-600 focus:border-teal-500"
-                    placeholder="Repita a nova senha"
-                    :disabled="!form.senha"
-                />
-            </div>
-        </div>
-      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="md:col-span-2">
+              <label class="block text-sm text-gray-400 mb-1 ml-1">Email</label>
+              <input v-model="form.email" type="email" required class="form-input">
+            </div>
+
             <div>
-                <label class="text-xs text-gray-400 ml-1">Lateralidade</label>
-                <div class="flex items-center space-x-6 mt-1 p-3 rounded-lg bg-[#0f1616] border border-transparent focus-within:border-teal-600 transition-colors">
-                <label class="flex items-center cursor-pointer hover:text-teal-400 transition-colors">
-                    <input type="radio" v-model="form.lateralidade" value="destro" class="form-radio">
-                    <span class="ml-2 text-sm">Destro</span>
-                </label>
-                <label class="flex items-center cursor-pointer hover:text-teal-400 transition-colors">
-                    <input type="radio" v-model="form.lateralidade" value="canhoto" class="form-radio">
-                    <span class="ml-2 text-sm">Canhoto</span>
-                </label>
+              <label class="block text-sm text-gray-400 mb-1 ml-1">CPF</label>
+              <input
+                v-model="form.cpf"
+                type="text"
+                v-mask="'###.###.###-##'"
+                class="form-input opacity-75 cursor-not-allowed"
+                disabled
+                title="O CPF não pode ser alterado"
+              >
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-400 mb-1 ml-1">Celular</label>
+              <input
+                v-model="form.celular"
+                type="text"
+                v-mask="['(##) ####-####', '(##) #####-####']"
+                placeholder="(00) 00000-0000"
+                class="form-input"
+              >
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-400 mb-1 ml-1">Data de Nascimento</label>
+              <input v-model="form.data_nascimento" type="date" class="form-input">
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-400 mb-1 ml-1">Gênero</label>
+              <select v-model="form.genero" class="form-input appearance-none cursor-pointer">
+                  <option value="" disabled selected>Selecione</option>
+                  <option value="Feminino">Feminino</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Outro">Outro</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-400 mb-1 ml-1">Profissão</label>
+              <input v-model="form.profissao" type="text" placeholder="Ex: Advogada" class="form-input">
+            </div>
+
+            <div>
+              <label class="block text-sm text-gray-400 mb-1 ml-1">Lateridade</label>
+              <select v-model="form.lateridade" class="form-input appearance-none cursor-pointer">
+                  <option value="" disabled selected>Selecione</option>
+                  <option value="Destro">Destro</option>
+                  <option value="Canhoto">Canhoto</option>
+                  <option value="Ambidestro">Ambidestro</option>
+              </select>
+            </div>
+
+            <div class="md:col-span-2 border-t border-gray-700/50 my-2 pt-4">
+                <p class="text-xs text-gray-500 mb-4 uppercase font-bold tracking-wider">Alterar Senha (Opcional)</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                    <label class="block text-sm text-gray-400 mb-1 ml-1">Nova Senha</label>
+                    <input v-model="form.senha" type="password" placeholder="Deixe em branco para manter" class="form-input">
+                    </div>
+
+                    <div>
+                    <label class="block text-sm text-gray-400 mb-1 ml-1">Confirmar Nova Senha</label>
+                    <input v-model="form.confirmarSenha" type="password" placeholder="Repita a nova senha" class="form-input">
+                    </div>
                 </div>
             </div>
+          </div>
 
-            <div>
-                <label class="text-xs text-gray-400 ml-1">Gênero</label>
-                <div class="flex items-center space-x-6 mt-1 p-3 rounded-lg bg-[#0f1616] border border-transparent focus-within:border-teal-600 transition-colors">
-                    <label class="flex items-center cursor-pointer hover:text-teal-400 transition-colors">
-                        <input type="radio" v-model="form.genero" value="feminino" class="form-radio">
-                        <span class="ml-2 text-sm">Feminino</span>
-                    </label>
-                    <label class="flex items-center cursor-pointer hover:text-teal-400 transition-colors">
-                        <input type="radio" v-model="form.genero" value="masculino" class="form-radio">
-                        <span class="ml-2 text-sm">Masculino</span>
-                    </label>
-                </div>
-            </div>
-        </div>
-
-      <div class="pt-4 border-t border-gray-700 flex justify-end">
-        <button type="submit" :disabled="saving" class="bg-teal-700 hover:bg-teal-600 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-teal-900/20">
-          {{ saving ? 'Salvando...' : 'Salvar Alterações' }}
-        </button>
+          <button
+            type="submit"
+            :disabled="saving"
+            class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-teal-900/20 hover:shadow-teal-900/40 transform hover:-translate-y-0.5 mt-4 flex justify-center items-center"
+          >
+            <svg v-if="saving" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            {{ saving ? 'Salvando Alterações...' : 'Salvar Alterações' }}
+          </button>
+        </form>
       </div>
-    </form>
+    </div>
   </div>
-  <div v-else class="text-center text-red-400 mt-10">Cliente não encontrado.</div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
+import { useRoute, useRouter } from 'vue-router';
 
-const props = defineProps({
-  id: {
-    type: [String, Number],
-    required: true
-  }
-});
-
+const route = useRoute();
 const router = useRouter();
+const props = defineProps(['id']);
+
+const cliente = ref(null);
 const loading = ref(true);
 const saving = ref(false);
-const cliente = ref(null);
 const errorMessage = ref('');
 
 const form = reactive({
   nome: '',
   email: '',
+  cpf: '',
   celular: '',
   data_nascimento: '',
-  profissao: '',
-  lateralidade: '',
-  genero: '',
+  genero: '',       // Novo campo
+  profissao: '',    // Novo campo
+  lateridade: '',   // Novo campo
   senha: '',
-  confirmarSenha: '' // Novo campo
+  confirmarSenha: ''
 });
 
-const formatarCelular = (event) => {
-  let value = event.target.value.replace(/\D/g, '');
-  if (value.length > 11) value = value.slice(0, 11);
-  value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
-  value = value.replace(/(\d)(\d{4})$/, '$1-$2');
-  form.celular = value;
-};
-
 const fetchCliente = async () => {
+  loading.value = true;
   try {
     const response = await axios.get(`/api/usuarios/${props.id}`);
-    cliente.value = response.data.data || response.data;
+    cliente.value = response.data;
 
+    // Preenche o formulário
     form.nome = cliente.value.nome;
     form.email = cliente.value.email;
+    form.cpf = cliente.value.cpf;
     form.celular = cliente.value.celular;
     form.data_nascimento = cliente.value.data_nascimento;
-    form.profissao = cliente.value.profissao;
-    form.lateralidade = cliente.value.lateralidade;
-    form.genero = cliente.value.genero;
+    // Mapeando novos campos
+    form.genero = cliente.value.genero || '';
+    form.profissao = cliente.value.profissao || '';
+    form.lateridade = cliente.value.lateridade || '';
 
   } catch (error) {
-    console.error("Erro ao buscar dados do cliente:", error);
-    errorMessage.value = "Erro ao carregar os dados.";
+    console.error("Erro ao buscar cliente:", error);
+    errorMessage.value = "Erro ao carregar os dados do cliente.";
   } finally {
     loading.value = false;
   }
@@ -179,13 +180,7 @@ const submitForm = async () => {
   saving.value = true;
   errorMessage.value = '';
 
-  // 1. Validação de Senha (Frontend)
   if (form.senha) {
-      if (form.senha.length < 8) {
-          errorMessage.value = "A nova senha deve ter no mínimo 8 caracteres.";
-          saving.value = false;
-          return;
-      }
       if (form.senha !== form.confirmarSenha) {
           errorMessage.value = "A confirmação da senha não confere.";
           saving.value = false;
@@ -193,14 +188,13 @@ const submitForm = async () => {
       }
   }
 
-  // 2. Prepara Payload
   const payload = {
       ...form,
       celular: form.celular ? form.celular.replace(/\D/g, '') : null,
   };
 
-  // Limpeza: Remove a senha se vazia OU remove a confirmação (não vai pro back)
-  delete payload.confirmarSenha; // Nunca enviar confirmação para API se não for usar regra 'confirmed' do Laravel
+  delete payload.cpf;
+  delete payload.confirmarSenha;
   if (!payload.senha) {
       delete payload.senha;
   }
@@ -210,9 +204,13 @@ const submitForm = async () => {
     router.push({ name: 'detalhes-cliente', params: { id: props.id } });
   } catch (error) {
     console.error("Erro ao atualizar cliente:", error);
-    if (error.response && error.response.data && error.response.data.errors) {
-        const firstErrorKey = Object.keys(error.response.data.errors)[0];
-        errorMessage.value = error.response.data.errors[firstErrorKey][0];
+    if (error.response && error.response.data) {
+         if(error.response.data.errors) {
+            const firstErrorKey = Object.keys(error.response.data.errors)[0];
+            errorMessage.value = error.response.data.errors[firstErrorKey][0];
+         } else {
+            errorMessage.value = error.response.data.message || "Ocorreu um erro ao salvar.";
+         }
     } else {
         errorMessage.value = "Ocorreu um erro ao salvar as alterações.";
     }
@@ -226,9 +224,6 @@ onMounted(fetchCliente);
 
 <style scoped>
 .form-input {
-  @apply w-full p-3 rounded-lg bg-[#0f1616] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 border border-transparent transition-all;
-}
-.form-radio {
-  @apply w-5 h-5 text-teal-600 bg-gray-700 border-gray-600 focus:ring-teal-500 focus:ring-2 cursor-pointer;
+  @apply w-full p-3 rounded-lg bg-[#0a0a0a]/50 border border-gray-700 text-white placeholder-gray-500 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all outline-none;
 }
 </style>

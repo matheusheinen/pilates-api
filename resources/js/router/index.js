@@ -10,6 +10,7 @@ import Agenda from '../components/admin/Agenda.vue';
 import HorariosAgenda from '../components/admin/HorariosAgenda.vue';
 import Clientes from '../components/admin/Clientes.vue';
 import DetalhesCliente from '../components/admin/DetalhesCliente.vue';
+import CadastroCliente from '../components/admin/CadastroCliente.vue';
 import AvaliacaoPostural from '../components/admin/AvaliacaoPostural.vue';
 import EditarCliente from '../components/admin/EditarCliente.vue';
 import VisualizarAvaliacao from '../components/admin/VisualizarAvaliacao.vue';
@@ -48,6 +49,7 @@ const routes = [
 
             // Sub-rotas
             { path: 'clientes/:id', name: 'detalhes-cliente', component: DetalhesCliente, props: true },
+            { path: 'clientes/novo', name: 'cadastro-cliente', component: CadastroCliente },
             { path: 'clientes/:id/avaliacao', name: 'avaliacao-postural', component: AvaliacaoPostural, props: true },
             { path: 'clientes/:id/editar', name: 'editar-cliente', component: EditarCliente, props: true },
             { path: 'clientes/:id/matricula', name: 'matricula', component: Matricula, props: true },

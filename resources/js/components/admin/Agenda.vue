@@ -5,30 +5,38 @@
         <h3 class="text-lg font-semibold">Agenda de Aulas</h3>
         <p class="text-[#a0a0a0]">Visualize todas as aulas, horários livres e ocupados.</p>
       </div>
-      <div>
-        <button
-            @click="atualizarAgenda"
-            :disabled="atualizando"
-            class="w-full sm:w-auto px-4 py-2 rounded-lg bg-teal-700 hover:bg-teal-600 font-semibold transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-          <svg v-if="atualizando" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-          <span>{{ atualizando ? 'Processando...' : 'Concluir Aulas Passadas' }}</span>
-        </button>
-      </div>
     </div>
 
     <FullCalendar :options="calendarOptions" ref="fullCalendar" />
 
     <div v-if="showModal" class="modal-overlay" @click="showModal = false">
-      <div class="modal-content max-w-md p-6" @click.stop>
+      <div class="modal-content w-full max-w-2xl p-6" @click.stop>
         <div class="flex justify-between items-start mb-4">
             <h4 class="font-bold text-xl text-teal-400">{{ eventTitle }}</h4>
             <button @click="showModal = false" class="text-gray-400 hover:text-white text-xl font-bold">×</button>
         </div>
 
         <div v-if="selectedEventDetails" class="space-y-4">
-          <div class="flex justify-between text-sm text-gray-300 bg-[#2a2a2a] p-3 rounded-lg border border-gray-700">
-              <span><strong>Início:</strong> {{ formatarData(selectedEvent.start) }}</span>
-              <span><strong>Vagas:</strong> {{ selectedEventDetails.total_alunos }} / {{ selectedEventDetails.vagas_totais }}</span>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-300 bg-[#2a2a2a] p-4 rounded-lg border border-gray-700">
+              <div class="flex flex-col">
+                  <span class="text-gray-500 text-xs uppercase font-bold mb-1">Horário</span>
+                  <span class="text-white font-medium">{{ formatarData(selectedEvent?.start) }}</span>
+                  <span class="text-xs text-gray-400" v-if="selectedEvent?.end">
+                    até {{ format(new Date(selectedEvent.end), 'HH:mm') }}
+                  </span>
+              </div>
+
+              <div class="flex flex-col border-l border-gray-600 pl-4 sm:border-l-0 sm:pl-0">
+                  <span class="text-gray-500 text-xs uppercase font-bold mb-1">Duração</span>
+                  <span class="text-white font-medium">
+                    {{ calcularDuracao(selectedEvent) }}
+                  </span>
+              </div>
+
+              <div class="flex flex-col border-l border-gray-600 pl-4 sm:border-l-0 sm:pl-0">
+                  <span class="text-gray-500 text-xs uppercase font-bold mb-1">Vagas</span>
+                  <span class="text-white font-medium">{{ selectedEventDetails.total_alunos }} / {{ selectedEventDetails.vagas_totais }}</span>
+              </div>
           </div>
 
           <div>
@@ -66,9 +74,7 @@
 
     <transition name="fade">
     <div v-if="showReagendar" class="modal-overlay" @click="fecharReagendar">
-
       <div class="modal-content w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden bg-[#1f1f1f] border border-gray-700 shadow-2xl rounded-xl" @click.stop>
-
         <div class="px-6 py-4 border-b border-gray-700 flex justify-between items-center bg-[#252525] rounded-t-xl">
             <div>
                 <h3 class="text-white font-bold text-xl">
@@ -100,7 +106,6 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-6 bg-[#1f1f1f] min-h-[400px]">
-
             <div v-if="loadingVagas" class="flex flex-col items-center justify-center py-20 text-gray-500">
                 <svg class="animate-spin h-10 w-10 mb-4 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 <span class="text-base font-medium">Buscando horários...</span>
@@ -174,10 +179,9 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import ptBrFullCalendar from '@fullcalendar/core/locales/pt-br';
-import { format, parseISO, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns';
+import { format, parseISO, addWeeks, subWeeks, startOfWeek, endOfWeek, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-// Estados
 const fullCalendar = ref(null);
 const showModal = ref(false);
 const selectedEvent = ref(null);
@@ -196,9 +200,19 @@ const formReagendar = reactive({ data: '', id_agenda: '' });
 const temAlunosAtivos = computed(() => {
     if (!selectedEventDetails.value?.alunos) return false;
     const temAgendada = selectedEventDetails.value.alunos.some(a => a.status === 'agendada');
-    const ehFuturo = new Date(selectedEvent.value.start) > new Date();
+    const ehFuturo = new Date(selectedEvent.value?.start || new Date()) > new Date();
     return temAgendada && ehFuturo;
 });
+
+const calcularDuracao = (event) => {
+    if (!event || !event.start || !event.end) return '50 minutos'; // Fallback
+    try {
+        const diff = differenceInMinutes(new Date(event.end), new Date(event.start));
+        return `${diff} minutos`;
+    } catch (e) {
+        return 'N/A';
+    }
+};
 
 const fetchAulas = async (info, successCallback, failureCallback) => {
   try {
@@ -261,7 +275,8 @@ const cancelarEventoEmMassa = async () => {
 const abrirModalReagendar = (aluno) => {
     isBulkReagendamento.value = false;
     alunoParaReagendar.value = aluno;
-    semanaReagendamento.value = new Date(selectedEvent.value.start);
+    // Safe navigation for start date
+    semanaReagendamento.value = selectedEvent.value?.start ? new Date(selectedEvent.value.start) : new Date();
     showReagendar.value = true;
     buscarVagas();
 };
@@ -269,7 +284,7 @@ const abrirModalReagendar = (aluno) => {
 const abrirModalReagendarEmMassa = () => {
     isBulkReagendamento.value = true;
     alunoParaReagendar.value = null;
-    semanaReagendamento.value = new Date(selectedEvent.value.start);
+    semanaReagendamento.value = selectedEvent.value?.start ? new Date(selectedEvent.value.start) : new Date();
     showReagendar.value = true;
     buscarVagas();
 };
@@ -369,7 +384,6 @@ const calendarOptions = reactive({
 .modal-overlay {
   @apply fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm;
 }
-/* Largura flexível controlada pelo template */
 .modal-content {
   @apply bg-[#1f1f1f] rounded-xl border border-gray-600 shadow-2xl;
 }
