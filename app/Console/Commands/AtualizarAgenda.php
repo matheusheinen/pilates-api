@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Models\Aula;
 
-class AgendaAtualizar extends Command
+// MUDANÇA: O nome da classe agora é igual ao nome do arquivo (AtualizarAgenda.php)
+class AtualizarAgenda extends Command
 {
     // 1. Assinatura LIMPA (sem {--dias})
     protected $signature = 'agenda:atualizar';
