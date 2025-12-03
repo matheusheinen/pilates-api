@@ -8,78 +8,116 @@ use App\Http\Requests\UpdateAvaliacaoPosturalRequest;
 use App\Models\AvaliacaoPostural;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AvaliacaoPosturalController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        return AvaliacaoPostural::all();
+        try {
+            $query = AvaliacaoPostural::query();
+
+            // Filtro por usuário se fornecido
+            if ($request->has('usuario_id')) {
+                $query->where('usuario_id', $request->usuario_id);
+            }
+
+            // Se solicitar a mais recente
+            if ($request->has('latest') && $request->latest === 'true') {
+                $query->latest('data_avaliacao')->first();
+                return response()->json($query->latest('data_avaliacao')->first());
+            }
+
+            $avaliacoes = $query->latest('data_avaliacao')->get();
+            return response()->json($avaliacoes);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Erro ao listar avaliações: " . $e->getMessage());
+            return response()->json([
+                'message' => 'Erro ao listar avaliações.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    public function show($id)
+    {
+        try {
+            $avaliacao = AvaliacaoPostural::with('usuario')->findOrFail($id);
+            return response()->json($avaliacao);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Avaliação não encontrada.'], 404);
+        }
+    }
+
+    // ... métodos index, show, etc ...
+
     public function store(StoreAvaliacaoPosturalRequest $request)
     {
-        $dadosValidados = $request->validated();
+        try {
+            // Pega todos os dados validados
+            $dados = $request->validated();
 
-        $avaliacaoPostural = AvaliacaoPostural::create($dadosValidados);
-        return response()->json($avaliacaoPostural, 201);
-    }
+            // Se tiver arquivo, salva e coloca o caminho no array de dados
+            if ($request->hasFile('anexo')) {
+                $dados['caminho_anexo'] = $request->file('anexo')->store('anexos_posturais', 'public');
+            }
 
+            // Remove o campo 'anexo' (arquivo físico) do array de dados para não quebrar o SQL
+            unset($dados['anexo']);
 
-    public function show($id) // Recebe o ID diretamente em vez do Model
-    {
-        // Busca manual (Garante que o erro 404 apareça se não achar)
-        $avaliacaoPostural = AvaliacaoPostural::findOrFail($id);
+            // Cria o registro
+            $avaliacao = AvaliacaoPostural::create($dados);
 
-        if (request()->has('with') && request('with') == 'usuario') {
-            $avaliacaoPostural->load('usuario');
+            return response()->json($avaliacao, 201);
+
+        } catch (\Exception $e) {
+            // Loga o erro real no arquivo storage/logs/laravel.log
+            \Illuminate\Support\Facades\Log::error("Erro Avaliação: " . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Erro ao salvar avaliação.',
+                'error' => $e->getMessage() // Retorna o erro para o front ler
+            ], 500);
         }
-
-        return response()->json([
-            'data' => $avaliacaoPostural
-        ]);
     }
-    /**
-     * Update the specified resource in storage.
-     */
+
     public function update(UpdateAvaliacaoPosturalRequest $request, $id)
     {
-        $dadosValidados = $request->validated();
+        try {
+            $avaliacao = AvaliacaoPostural::findOrFail($id);
+            $dados = $request->validated();
 
-        $avaliacaoPostural = AvaliacaoPostural::findOrFail($id);
-        $avaliacaoPostural->update($dadosValidados);
-        return response()->json($avaliacaoPostural, 200);
+            // 1. Remover anexo se solicitado
+            if ($request->has('remover_anexo') && $avaliacao->caminho_anexo) {
+                Storage::disk('public')->delete($avaliacao->caminho_anexo);
+                $dados['caminho_anexo'] = null;
+            }
+
+            // 2. Upload de novo arquivo
+            if ($request->hasFile('anexo')) {
+                if ($avaliacao->caminho_anexo) {
+                    Storage::disk('public')->delete($avaliacao->caminho_anexo);
+                }
+                $dados['caminho_anexo'] = $request->file('anexo')->store('anexos_posturais', 'public');
+            }
+
+            unset($dados['anexo']);
+
+            $avaliacao->update($dados);
+
+            return response()->json($avaliacao, 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erro ao atualizar.', 'error' => $e->getMessage()], 500);
+        }
     }
 
-
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(AvaliacaoPostural $avaliacaoPostural)
+    public function visualizarAnexo($id)
     {
-        $avaliacaoPostural->delete();
-        return response()->json(null, 204);
-    }
-
-
-    public function getAvaliacoesPorUsuario($id)
-    {
-        // Encontra o usuário ou falha
-        $usuario = Usuario::findOrFail($id);
-
-        // Busca as avaliações usando a relação e ordena pela mais recente
-        $avaliacoes = $usuario->avaliacoesPosturais()
-                              ->orderBy('data_avaliacao', 'desc')
-                              ->get();
-
-        return response()->json([
-            'data' => $avaliacoes
-        ]);
+        $avaliacao = AvaliacaoPostural::findOrFail($id);
+        if (!$avaliacao->caminho_anexo || !Storage::disk('public')->exists($avaliacao->caminho_anexo)) {
+            abort(404);
+        }
+        $filePath = Storage::disk('public')->path($avaliacao->caminho_anexo);
+        return response()->file($filePath);
     }
 }

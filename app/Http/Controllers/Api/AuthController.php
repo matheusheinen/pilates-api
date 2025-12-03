@@ -11,39 +11,41 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Lida com uma tentativa de autenticação usando email OU celular, seguindo o padrão manual de checagem.
+     * Lida com uma tentativa de autenticação usando email OU CPF.
      */
     public function login(Request $request)
     {
-        // 1. Validação genérica para 'login' e 'senha'
+        // 1. Validação genérica
         $request->validate([
             'login' => 'required|string',
             'senha' => 'required',
         ]);
 
-        $loginIdentifier = $request->login;
+        $loginIdentifier = $request->input('login');
 
-        // 2. Determina o campo de busca (email ou celular)
-        $fieldType = 'email';
-        $searchValue = $loginIdentifier;
+        // 2. Determina o campo de busca (email ou cpf)
 
-        // Remove máscara do celular (se houver)
+        // Remove tudo que não é dígito (pontos e traços do CPF)
         $cleanIdentifier = preg_replace('/\D/', '', $loginIdentifier);
 
-        // Se contém '@', é tratado como email. Caso contrário, e se o comprimento for de telefone, assume celular.
-        if (!filter_var($loginIdentifier, FILTER_VALIDATE_EMAIL) && strlen($cleanIdentifier) >= 10 && strlen($cleanIdentifier) <= 20) {
-            $fieldType = 'celular';
+        // Lógica de decisão:
+        // Se for um formato de email válido, busca por email.
+        // Caso contrário, assume que é um CPF (usando apenas os números).
+        if (filter_var($loginIdentifier, FILTER_VALIDATE_EMAIL)) {
+            $fieldType = 'email';
+            $searchValue = $loginIdentifier;
+        } else {
+            $fieldType = 'cpf';
             $searchValue = $cleanIdentifier;
         }
 
         // 3. Busca o usuário no campo determinado
         $usuario = Usuario::where($fieldType, $searchValue)->first();
 
-        // 4. Checagem manual de usuário e senha (Seguindo o padrão original)
+        // 4. Checagem manual de usuário e senha
         if (! $usuario || ! Hash::check($request->senha, $usuario->senha)) {
-            // Usa a exceção para retornar 401 e a mensagem de erro
             throw ValidationException::withMessages([
-                'login' => ['As credenciais fornecidas estão incorretas.'],
+                'login' => ['Credenciais incorretas (Verifique E-mail/CPF e Senha).'],
             ])->status(401);
         }
 

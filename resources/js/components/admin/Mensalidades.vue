@@ -13,12 +13,10 @@
         <label class="text-xs text-gray-400 mb-1 block ml-1">Buscar Aluno</label>
         <input v-model="filtros.search" @input="fetchMensalidades" type="text" placeholder="Nome do aluno..." class="form-input-style" />
       </div>
-
       <div>
         <label class="text-xs text-gray-400 mb-1 block ml-1">Mês de Vencimento</label>
         <input v-model="filtros.mes" @change="fetchMensalidades" type="month" class="form-input-style" />
       </div>
-
       <div>
         <label class="text-xs text-gray-400 mb-1 block ml-1">Status</label>
         <select v-model="filtros.status" @change="fetchMensalidades" class="form-input-style">
@@ -32,7 +30,6 @@
     </div>
 
     <div class="bg-[#1e1e1e] rounded-xl border border-[#333] overflow-hidden relative shadow-sm">
-
       <div v-if="loading" class="absolute inset-0 bg-[#1e1e1e]/80 z-10 flex items-center justify-center">
         <div class="text-teal-500 font-semibold animate-pulse">Carregando...</div>
       </div>
@@ -66,22 +63,19 @@
 
                 <div v-if="mensalidade.status === 'em_analise'" class="flex justify-end items-center gap-2">
 
-                    <a
+                    <button
                       v-if="mensalidade.pagamento && mensalidade.pagamento.comprovante_path"
-                      :href="'/storage/' + mensalidade.pagamento.comprovante_path"
-                      target="_blank"
-                      class="text-blue-400 hover:text-blue-300 text-xs underline mr-2 cursor-pointer"
-                      title="Abrir anexo em nova aba"
+                      @click.stop.prevent="abrirAnexo(mensalidade.id)"
+                      class="text-blue-400 hover:text-blue-300 text-xs underline mr-2 flex items-center gap-1 cursor-pointer bg-transparent border-0"
+                      type="button"
                     >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
                         Ver Anexo
-                    </a>
+                    </button>
+                    <span v-else class="text-xs text-gray-600 mr-2 italic">Sem anexo</span>
 
-                    <button @click="aprovar(mensalidade.id)" class="bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white border border-green-600/50 p-1.5 rounded transition" title="Aprovar">
-                        ✓
-                    </button>
-                    <button @click="rejeitar(mensalidade.id)" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/50 p-1.5 rounded transition" title="Rejeitar">
-                        ✕
-                    </button>
+                    <button @click="aprovar(mensalidade.id)" class="bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white border border-green-600/50 p-1.5 rounded transition" title="Aprovar">✓</button>
+                    <button @click="rejeitar(mensalidade.id)" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/50 p-1.5 rounded transition" title="Rejeitar">✕</button>
                 </div>
 
                 <button v-else-if="['pendente', 'atrasada'].includes(mensalidade.status)"
@@ -93,20 +87,21 @@
                 <div v-else-if="mensalidade.status === 'paga'" class="text-xs text-gray-500 flex flex-col items-end">
                     <span class="text-green-500/70 font-semibold">Pago em {{ formatarData(mensalidade.pagamento?.data_pagamento) }}</span>
 
-                    <a
+                    <button
                       v-if="mensalidade.pagamento && mensalidade.pagamento.comprovante_path"
-                      :href="'/storage/' + mensalidade.pagamento.comprovante_path"
-                      target="_blank"
-                      class="text-blue-500 hover:text-blue-400 underline mt-1 cursor-pointer"
+                      @click.stop.prevent="abrirAnexo(mensalidade.id)"
+                      class="text-blue-500 hover:text-blue-400 underline mt-1 flex items-center gap-1 cursor-pointer bg-transparent border-0"
+                      type="button"
                     >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
                         Ver Comprovante
-                    </a>
+                    </button>
                 </div>
 
               </td>
             </tr>
             <tr v-if="!loading && mensalidades.length === 0">
-                <td colspan="6" class="p-8 text-center text-gray-500 italic">Nenhuma mensalidade encontrada com os filtros atuais.</td>
+                <td colspan="6" class="p-8 text-center text-gray-500 italic">Nenhuma mensalidade encontrada.</td>
             </tr>
           </tbody>
         </table>
@@ -124,24 +119,20 @@
     <div v-if="modalAberto" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div class="bg-[#1f1f1f] rounded-xl border border-gray-600 w-full max-w-md p-6 shadow-2xl transform transition-all">
         <h3 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-3">Baixa Manual de Pagamento</h3>
-
         <div class="mb-6 p-4 bg-[#151515] rounded-lg border border-gray-700/50">
             <p class="text-sm text-gray-400 flex justify-between"><span>Aluno:</span> <span class="text-white font-semibold">{{ mensalidadeSelecionada?.inscricao?.usuario?.nome }}</span></p>
             <p class="text-sm text-gray-400 flex justify-between mt-2"><span>Vencimento:</span> <span class="text-white">{{ formatarData(mensalidadeSelecionada?.data_vencimento) }}</span></p>
             <p class="text-sm text-gray-400 flex justify-between mt-2 border-t border-gray-700 pt-2"><span>Valor Original:</span> <span class="text-teal-400 font-mono">R$ {{ formatarPreco(mensalidadeSelecionada?.valor) }}</span></p>
         </div>
-
         <form @submit.prevent="confirmarPagamentoManual" class="space-y-4">
           <div>
             <label class="block text-xs text-gray-400 mb-1 ml-1">Data do Recebimento</label>
             <input v-model="formPagamento.data_pagamento" type="date" class="form-input-style" required />
           </div>
-
           <div>
             <label class="block text-xs text-gray-400 mb-1 ml-1">Valor Recebido (R$)</label>
             <input v-model="formPagamento.valor_pago" type="number" step="0.01" class="form-input-style" required />
           </div>
-
           <div>
             <label class="block text-xs text-gray-400 mb-1 ml-1">Método de Pagamento</label>
             <select v-model="formPagamento.metodo_pagamento" class="form-input-style" required>
@@ -151,7 +142,6 @@
                 <option value="cartao_debito">Cartão de Débito</option>
             </select>
           </div>
-
           <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-700">
             <button type="button" @click="fecharModal" class="px-4 py-2 text-gray-400 hover:text-white transition font-medium text-sm">Cancelar</button>
             <button type="submit" :disabled="salvandoPagamento" class="bg-teal-700 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-50 transition text-sm shadow-lg shadow-teal-900/20">
@@ -172,7 +162,6 @@ import axios from 'axios';
 const mensalidades = ref([]);
 const paginacao = ref({});
 const loading = ref(false);
-const gerando = ref(false);
 const modalAberto = ref(false);
 const mensalidadeSelecionada = ref(null);
 const salvandoPagamento = ref(false);
@@ -188,6 +177,27 @@ const formPagamento = reactive({
     valor_pago: '',
     metodo_pagamento: 'pix'
 });
+
+// --- FUNÇÃO CORRETIVA: USA AXIOS PARA OBTER BLOB ---
+// Isso evita que o Vue Router se intrometa, pois não há navegação de URL,
+// apenas uma chamada de API e a criação de um Blob URL local.
+const abrirAnexo = async (id) => {
+    try {
+        const response = await axios.get(`/api/mensalidades/${id}/comprovante`, {
+            responseType: 'blob' // Importante para receber o arquivo
+        });
+
+        // Cria uma URL temporária para o blob
+        const fileURL = window.URL.createObjectURL(new Blob([response.data], { type: response.headers['content-type'] }));
+
+        // Abre em nova aba
+        window.open(fileURL, '_blank');
+
+    } catch (error) {
+        console.error("Erro ao abrir anexo:", error);
+        alert('Não foi possível carregar o arquivo. Verifique se ele ainda existe no servidor.');
+    }
+};
 
 const fetchMensalidades = async (page = 1) => {
     loading.value = true;
@@ -209,25 +219,10 @@ const mudarPagina = (page) => {
     }
 };
 
-const gerarMensalidades = async () => {
-    if (!confirm('Deseja gerar as mensalidades para todas as inscrições ativas que ainda não possuem cobrança para este mês?')) return;
-    gerando.value = true;
-    try {
-        const response = await axios.post('/api/mensalidades/gerar-massivo');
-        alert(response.data.message);
-        fetchMensalidades();
-    } catch (error) {
-        alert('Erro ao gerar mensalidades: ' + (error.response?.data?.message || error.message));
-    } finally {
-        gerando.value = false;
-    }
-};
-
 const aprovar = async (id) => {
     if(!confirm('Confirmar o recebimento deste pagamento? O status mudará para PAGO.')) return;
     try {
         await axios.post(`/api/mensalidades/${id}/aprovar`);
-        filtros.mes = '';
         fetchMensalidades(paginacao.value.current_page);
     } catch (error) {
         alert('Erro ao aprovar: ' + (error.response?.data?.message || 'Erro desconhecido'));
@@ -249,6 +244,7 @@ const abrirModalPagamento = (mensalidade) => {
     const hoje = new Date();
     const offset = hoje.getTimezoneOffset();
     const dataLocal = new Date(hoje.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+
     formPagamento.data_pagamento = dataLocal;
     formPagamento.valor_pago = mensalidade.valor;
     formPagamento.metodo_pagamento = 'pix';
@@ -265,12 +261,10 @@ const confirmarPagamentoManual = async () => {
     salvandoPagamento.value = true;
     try {
         await axios.post(`/api/mensalidades/${mensalidadeSelecionada.value.id}/pagar`, formPagamento);
-        filtros.mes = '';
         fetchMensalidades(paginacao.value.current_page);
         fecharModal();
     } catch (error) {
         alert('Erro ao registrar pagamento: ' + (error.response?.data?.message || 'Verifique os dados.'));
-        console.error(error);
     } finally {
         salvandoPagamento.value = false;
     }

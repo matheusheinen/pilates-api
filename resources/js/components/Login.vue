@@ -20,7 +20,7 @@
           <div>
             <input v-model="form.login"
                    type="text"
-                   placeholder="Email ou Celular"
+                   placeholder="Email ou CPF"
                    required
                    class="w-full p-3 rounded-lg bg-[#0f1616] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600" />
           </div>
@@ -55,7 +55,7 @@
             </router-link>
           </p>
         </div>
-        </div>
+      </div>
 
     </div>
   </div>
@@ -65,7 +65,7 @@
 import { reactive, ref, computed } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
-import logoUrl from '../../assets/logo.png';
+import logoUrl from '../../assets/logo.png'; // Verifique se o caminho da logo está correto
 
 const router = useRouter();
 const form = reactive({ login: '', senha: '' });
@@ -82,28 +82,31 @@ const handleLogin = async () => {
 
         // 1. Salva Token e Dados
         const token = response.data.access_token;
-        const usuario = response.data.usuario; // Certifique-se que o backend retorna 'usuario' com o campo 'tipo'
+        const usuario = response.data.usuario;
 
         localStorage.setItem('authToken', token);
         localStorage.setItem('userData', JSON.stringify(usuario));
 
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        // 2. REDIRECIONAMENTO INTELIGENTE
-        // Verifica o tipo do usuário para enviar para a área correta
+        // 2. REDIRECIONAMENTO POR TIPO
         if (usuario.tipo === 'admin') {
-            router.push({ name: 'admin-agenda' }); // Área do Admin
+            router.push({ name: 'admin-agenda' }); // Usa o nome da rota
         } else {
-            router.push({ name: 'aluno-home' });  // Área do Aluno
+            router.push({ name: 'aluno-home' });   // Usa o nome da rota
         }
 
     } catch (error) {
-        errorMessage.value = 'Login ou senha inválidos.';
+        if (error.response && error.response.status === 401) {
+            errorMessage.value = 'Login ou senha incorretos.';
+        } else {
+            errorMessage.value = 'Erro ao conectar com o servidor.';
+        }
         console.error("Erro no Login:", error);
     }
 };
 </script>
 
 <style scoped>
-/* Estilos permanecem os mesmos */
+/* Scoped styles se necessário */
 </style>

@@ -7,10 +7,32 @@
       </div>
     </div>
 
-    <FullCalendar :options="calendarOptions" ref="fullCalendar" />
+    <FullCalendar :options="calendarOptions" ref="fullCalendar">
+      <template #eventContent="arg">
+        <div class="flex flex-col w-full h-full overflow-hidden leading-tight px-1 py-0.5">
+
+          <div class="text-[10px] font-medium opacity-90 mb-0.5">
+             {{ arg.timeText }}
+          </div>
+
+          <div class="flex items-center gap-1.5">
+             <span class="font-bold text-xs truncate">{{ arg.event.title }}</span>
+
+             <div v-if="arg.event.extendedProps.tem_aluno_novo"
+                  class="flex items-center gap-1 bg-yellow-500/20 border border-yellow-500/50 rounded px-1 py-0.5 animate-pulse"
+                  title="Há um aluno novo nesta aula">
+                <div class="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
+                <span class="text-[9px] font-black text-yellow-200 uppercase tracking-tighter">NOVO</span>
+             </div>
+          </div>
+
+        </div>
+      </template>
+    </FullCalendar>
 
     <div v-if="showModal" class="modal-overlay" @click="showModal = false">
       <div class="modal-content w-full max-w-2xl p-6" @click.stop>
+
         <div class="flex justify-between items-start mb-4">
             <h4 class="font-bold text-xl text-teal-400">{{ eventTitle }}</h4>
             <button @click="showModal = false" class="text-gray-400 hover:text-white text-xl font-bold">×</button>
@@ -41,12 +63,29 @@
 
           <div>
               <h5 class="font-semibold text-xs text-gray-400 uppercase tracking-wider mb-2">Alunos Matriculados</h5>
+
               <ul v-if="selectedEventDetails.alunos && selectedEventDetails.alunos.length > 0" class="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
                 <li v-for="aluno in selectedEventDetails.alunos" :key="aluno.id_inscricao" class="bg-[#2a2a2a] p-3 rounded-lg flex justify-between items-center text-sm group border border-transparent hover:border-gray-600 transition-colors">
+
                     <div class="flex flex-col">
-                        <span class="font-medium text-white">{{ aluno.nome }}</span>
-                        <span class="text-[10px] uppercase font-bold" :class="statusClass(aluno.status)">{{ aluno.status }}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-white">{{ aluno.nome }}</span>
+
+                            <span v-if="aluno.eh_primeira_aula && aluno.status === 'agendada'" class="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 text-[10px] font-bold border border-teal-500/30 animate-pulse">
+                                NOVO
+                            </span>
+                        </div>
+
+                        <span class="text-xs text-gray-500 font-mono mt-0.5">{{ aluno.celular }}</span>
+
+                        <span class="text-[10px] uppercase font-bold mt-1" :class="statusClass(aluno.status)">{{ aluno.status }}</span>
+
+                        <div v-if="aluno.status === 'reagendada' && aluno.observacoes" class="text-[10px] text-yellow-500 font-medium mt-1 flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg>
+                            {{ aluno.observacoes }}
+                        </div>
                     </div>
+
                     <div v-if="aluno.status === 'agendada'" class="flex gap-2">
                         <button @click="abrirModalReagendar(aluno)" class="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded transition border border-blue-500/20" title="Reagendar Aluno">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>

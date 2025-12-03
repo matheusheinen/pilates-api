@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Usuario;
+use App\Models\Aula; // <--- Importante: Importar o Model Aula
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash; // <--- CERTIFIQUE-SE DE QUE ESTÁ IMPORTADO
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB; // <--- Importante: Para usar transações
+use Illuminate\Support\Facades\Log;
 use App\Http\Requests\StoreUsuarioRequest;
 use App\Http\Requests\UpdateUsuarioRequest;
 
@@ -19,18 +22,54 @@ class UsuarioController extends Controller
 
     public function store(StoreUsuarioRequest $request)
     {
-        $dadosValidados = $request->validated();
+        // Inicia uma transação: ou salva tudo (usuário + aula) ou não salva nada
+        DB::beginTransaction();
 
-        // Define padrão aluno se não vier
-        if (!isset($dadosValidados['tipo'])) {
-            $dadosValidados['tipo'] = 'aluno';
+        try {
+            $dadosValidados = $request->validated();
+
+            if (!isset($dadosValidados['tipo'])) {
+                $dadosValidados['tipo'] = 'aluno';
+            }
+
+            $dadosValidados['senha'] = Hash::make($dadosValidados['senha']);
+
+            // 1. Cria o Usuário
+            $usuario = Usuario::create($dadosValidados);
+
+            // 2. Verifica se veio o pedido de agendamento (aula_interesse)
+            // Nota: Usamos $request->input porque 'aula_interesse' provavelmente não está no rules() do StoreUsuarioRequest
+            $aulaInteresse = $request->input('aula_interesse');
+
+            if ($aulaInteresse && is_array($aulaInteresse)) {
+
+                // Cria a aula experimental/inicial
+                Aula::create([
+                    'usuario_id' => $usuario->id,
+                    'horario_agenda_id' => $aulaInteresse['horario_agenda_id'],
+                    'data_hora_inicio' => $aulaInteresse['data_hora'], // Formato ISO enviado pelo front
+                    'status' => 'agendada',
+                    'duracao_minutos' => 50, // Padrão ou buscar do HorarioAgenda
+                    'observacoes' => 'Primeira aula (Agendada no Cadastro)',
+                    // 'inscricao_id' => null // Aula avulsa/experimental geralmente não tem inscrição ainda
+                ]);
+            }
+
+            // Confirma as alterações no banco
+            DB::commit();
+
+            return response()->json($usuario, 201);
+
+        } catch (\Exception $e) {
+            // Se der erro, desfaz tudo
+            DB::rollback();
+            Log::error("Erro ao cadastrar usuário: " . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Erro ao realizar cadastro.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // CORREÇÃO: Criptografar a senha antes de salvar
-        $dadosValidados['senha'] = Hash::make($dadosValidados['senha']);
-
-        $usuario = Usuario::create($dadosValidados);
-        return response()->json($usuario, 201);
     }
 
     public function show($id)
@@ -43,13 +82,9 @@ class UsuarioController extends Controller
         $usuario = Usuario::findOrFail($id);
         $dadosValidados = $request->validated();
 
-        // CORREÇÃO: Lógica Inteligente da Senha
-        // Verifica se o campo 'senha' foi enviado e não está vazio/nulo
         if (!empty($dadosValidados['senha'])) {
-            // Se veio senha nova, criptografa
             $dadosValidados['senha'] = Hash::make($dadosValidados['senha']);
         } else {
-            // Se não veio (ou veio null), remove do array para não sobrescrever a senha antiga com vazio
             unset($dadosValidados['senha']);
         }
 
@@ -66,15 +101,11 @@ class UsuarioController extends Controller
 
     public function avaliacoesPosturais($id)
     {
-        // 1. Encontra o usuário
         $usuario = Usuario::findOrFail($id);
-
-        // 2. Retorna a relação 'avaliacoesPosturais' ordenada pela data mais recente
         $avaliacoes = $usuario->avaliacoesPosturais()
                             ->orderBy('data_avaliacao', 'desc')
                             ->get();
 
-        // O Frontend (DetalhesCliente.vue) espera a chave 'data' na resposta
         return response()->json(['data' => $avaliacoes]);
     }
 }

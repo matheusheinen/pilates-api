@@ -13,16 +13,20 @@ class PlanoSeeder extends Seeder
      */
     public function run(): void
     {
-        Plano::create([
-            'nome' => '1x por semana',
-            'numero_aulas' => 1,
-            'preco' => 120.00,
-        ]);
+        Plano::firstOrCreate(
+            ['nome' => 'Plano 1x na semana'], // Verifica se já existe um plano com este nome
+            [
+                'preco' => 120.00,
+                'numero_aulas' => 1,
+            ]
+        );
 
-        Plano::create([
-            'nome' => '2x por semana',
-            'numero_aulas' => 2,
-            'preco' => 200.00,
-        ]);
+        Plano::firstOrCreate(
+            ['nome' => 'Plano 2x na semana'], // Verifica se já existe um plano com este nome
+            [
+                'preco' => 200.00,
+                'numero_aulas' => 2,
+            ]
+        );
     }
 }

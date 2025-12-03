@@ -1,9 +1,11 @@
 <template>
-  <div class="bg-gray-900 min-h-screen text-white pb-24"> <header class="bg-[#151515] px-6 py-4 flex justify-between items-center sticky top-0 z-30 border-b border-gray-800/50 shadow-lg">
+  <div class="bg-gray-900 min-h-screen text-white pb-24">
+
+    <header class="bg-[#151515] px-6 py-4 flex justify-between items-center sticky top-0 z-30 border-b border-gray-800/50 shadow-lg">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-teal-900/20">P</div>
         <div>
-          <h1 class="text-sm font-bold text-gray-200 leading-tight">Pilates App</h1>
+          <h1 class="text-sm font-bold text-gray-200 leading-tight">Pilates e Bem-Estar</h1>
           <p class="text-[10px] text-gray-500 font-medium">Bem-vindo, {{ primeiroNome }}</p>
         </div>
       </div>
@@ -24,8 +26,13 @@
     <nav class="fixed bottom-0 left-0 w-full bg-[#151515]/95 backdrop-blur-md border-t border-gray-800 flex justify-around items-center py-3 z-50 safe-area-pb shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
 
       <router-link :to="{ name: 'aluno-home' }" class="nav-item" active-class="active">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="text-[10px] font-medium mt-1">Início</span>
+      </router-link>
+
+      <router-link :to="{ name: 'aluno-agenda' }" class="nav-item" active-class="active">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
-        <span class="text-[10px] font-medium mt-1">Aulas</span>
+        <span class="text-[10px] font-medium mt-1">Agenda</span>
       </router-link>
 
       <router-link :to="{ name: 'aluno-financeiro' }" class="nav-item" active-class="active">

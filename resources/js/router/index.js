@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-// Componentes
+// Componentes (Imports mantidos...)
 import Login from '../components/Login.vue';
 import Register from '../components/Register.vue';
 
-// Admin Components
-import AdminLayout from '../components/admin/Admin.vue'; // Certifique-se que o arquivo existe
+// Admin Components (Imports mantidos...)
+import AdminLayout from '../components/admin/Admin.vue';
 import Agenda from '../components/admin/Agenda.vue';
 import HorariosAgenda from '../components/admin/HorariosAgenda.vue';
 import Clientes from '../components/admin/Clientes.vue';
@@ -24,6 +24,7 @@ import Pagamentos from '../components/admin/Pagamentos.vue';
 // Aluno Components
 import StudentLayout from '../components/aluno/Aluno.vue';
 import AlunoHome from '../components/aluno/Home.vue';
+import AlunoAgenda from '../components/aluno/Agenda.vue';
 import AlunoFinanceiro from '../components/aluno/Financeiro.vue';
 import AlunoPerfil from '../components/aluno/Perfil.vue';
 
@@ -37,9 +38,8 @@ const routes = [
         path: '/admin',
         component: AdminLayout,
         meta: { requiresAuth: true, role: 'admin' },
-        redirect: { name: 'admin-agenda' }, // Redireciona para o nome CORRETO
+        redirect: { name: 'admin-agenda' },
         children: [
-            // Definindo nomes padronizados "admin-..."
             { path: 'agenda', name: 'admin-agenda', component: Agenda },
             { path: 'horarios', name: 'admin-horarios', component: HorariosAgenda },
             { path: 'planos', name: 'admin-planos', component: Planos },
@@ -66,7 +66,9 @@ const routes = [
         meta: { requiresAuth: true, role: 'aluno' },
         redirect: { name: 'aluno-home' },
         children: [
-            { path: 'aulas', name: 'aluno-home', component: AlunoHome },
+            // CORREÇÃO AQUI: Definimos caminhos distintos e criamos o 'home'
+            { path: 'home', name: 'aluno-home', component: AlunoHome },     // Caminho: /aluno/home
+            { path: 'agenda', name: 'aluno-agenda', component: AlunoAgenda }, // Caminho: /aluno/agenda (antes estava duplicado como 'aulas')
             { path: 'financeiro', name: 'aluno-financeiro', component: AlunoFinanceiro },
             { path: 'perfil', name: 'aluno-perfil', component: AlunoPerfil },
         ]
@@ -78,7 +80,7 @@ const router = createRouter({
     routes,
 });
 
-// Guard de Proteção
+// Guard de Proteção (Mantido igual)
 router.beforeEach((to, from, next) => {
   const isLoggedIn = !!localStorage.getItem('authToken');
   const userData = localStorage.getItem('userData');
@@ -87,7 +89,6 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !isLoggedIn) {
     next({ name: 'login' });
   } else if (isLoggedIn && to.meta.role) {
-      // Redirecionamento de segurança
       if (to.meta.role === 'admin' && user.tipo !== 'admin') {
           next({ name: 'aluno-home' });
       } else if (to.meta.role === 'aluno' && user.tipo !== 'aluno') {

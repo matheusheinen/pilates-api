@@ -23,17 +23,14 @@ class UpdateUsuarioRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nome' => 'nullable|string|max:255', // Pode ser 'required' se o nome for obrigatório na edição
+            'nome' => 'nullable|string|max:255',
             'email' => [
                 'string',
                 'email',
                 'max:255',
-                // Garante que o email é único, exceto para o próprio usuário que está sendo editado
                 Rule::unique('usuarios')->ignore($this->route('usuario')),
             ],
-            // CORREÇÃO 2: Adicione a regra da senha (opcional, mas se vier, min 8)
             'senha' => ['nullable', 'string', 'min:8'],
-
             'genero' => ['nullable', 'string', Rule::in(['masculino', 'feminino', 'outro'])],
             'data_nascimento' => 'nullable|date',
             'profissao' => 'nullable|string|max:255',

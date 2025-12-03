@@ -55,7 +55,7 @@ return new class extends Migration
         $table->string('lateral_quadril')->nullable();
         $table->string('lateral_joelho')->nullable();
 
-        $table->json('anexos')->nullable();
+        $table->string('caminho_anexo')->nullable();
         $table->text('observacoes')->nullable();
         $table->timestamps();
         });

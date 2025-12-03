@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 
 class MensalidadeController extends Controller
@@ -290,5 +292,25 @@ class MensalidadeController extends Controller
 
         // 3. Gerar aulas até a data do PRÓXIMO vencimento
         $inscricao->gerarAulasFuturas($proximoVencimento);
+    }
+
+
+    public function visualizarComprovante($id)
+    {
+        $mensalidade = Mensalidade::with('pagamento')->findOrFail($id);
+
+        if (!$mensalidade->pagamento || !$mensalidade->pagamento->comprovante_path) {
+            abort(404, 'Comprovante não encontrado.');
+        }
+
+        $path = $mensalidade->pagamento->comprovante_path;
+
+        // Verifica se existe no disco público
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'Arquivo físico não encontrado.');
+        }
+
+        // Retorna o arquivo para o navegador abrir
+        return response()->file(Storage::disk('public')->path($path));
     }
 }

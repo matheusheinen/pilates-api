@@ -56,7 +56,8 @@ class UpdateAvaliacaoPosturalRequest extends FormRequest
         'lateral_pelve' => 'nullable|string',
         'lateral_quadril' => 'nullable|string',
         'lateral_joelho' => 'nullable|string',
-        'anexos' => 'nullable|array',
+        'anexo' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+        'caminho_anexo' => 'nullable|string',
         'observacoes' => 'nullable|string',
     ];
     }

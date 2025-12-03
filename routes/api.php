@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\MensalidadeController;
 // Estas rotas não requerem autenticação.
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [UsuarioController::class, 'store']);
+Route::get('/aulas/disponiveis-publico', [AulaController::class, 'disponiveisPublico']);
 
 // --- Rotas Protegidas ---
 // Todas as rotas abaixo deste ponto exigirão um token válido automaticamente.
@@ -34,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/aulas/{id}/reagendar', [AulaController::class, 'reagendar']);
     Route::post('/aulas/cancelar-turma', [AulaController::class, 'cancelarTurma']);
     Route::post('/aulas/reagendar-turma', [AulaController::class, 'reagendarTurma']);
+    Route::post('/aulas/{id}/cancelar', [AulaController::class, 'cancelar']);
 
     Route::post('/agenda/atualizar', [AulaController::class, 'atualizarAgenda']);
 
@@ -42,11 +44,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/mensalidades/gerar-massivo', [MensalidadeController::class, 'gerarMassivo']); // Gerar do mês
     Route::post('/mensalidades/{id}/pagar', [MensalidadeController::class, 'registrarPagamento']);
     Route::post('/mensalidades/{id}/comprovante', [MensalidadeController::class, 'enviarComprovante']);
+    Route::get('/mensalidades/{id}/comprovante', [MensalidadeController::class, 'visualizarComprovante']);
     Route::post('/mensalidades/{id}/aprovar', [MensalidadeController::class, 'aprovarPagamento']);
     Route::post('/mensalidades/{id}/rejeitar', [MensalidadeController::class, 'rejeitarPagamento']);
 
+    Route::get('/avaliacoes-posturais/{id}/visualizar-anexo', [AvaliacaoPosturalController::class, 'visualizarAnexo']);
+
     // Recursos Principais (CRUDs)
-    Route::apiResource('usuarios', UsuarioController::class)->except(['store']);
+    Route::apiResource('usuarios', UsuarioController::class);
     Route::apiResource('avaliacoes-posturais', AvaliacaoPosturalController::class);
     Route::apiResource('inscricoes', InscricaoController::class);
     Route::apiResource('aulas', AulaController::class);
