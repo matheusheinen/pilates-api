@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\DB;
 
 class AulaController extends Controller
 {
-    // ... (Mantenha o método index igual) ...
     public function index(Request $request)
     {
         try {
@@ -48,13 +47,12 @@ class AulaController extends Controller
                     'id' => $aula->id,
                     'title' => $aula->usuario?->nome ?? 'Aluno',
                     'start' => $inicio->toIso8601String(),
-                    // ... (end, colors mantidos) ...
                     'extendedProps' => [
                         'status' => $aula->status,
                         'usuario_id' => $aula->usuario_id,
                         'plano' => $aula->inscricao?->plano?->nome ?? 'Experimental/Avulso',
                         'horario_agenda_id' => $aula->horario_agenda_id,
-                        'observacoes' => $aula->observacoes, // <--- ADICIONE ESTA LINHA
+                        'observacoes' => $aula->observacoes,
                     ]
                 ];
             });
@@ -69,22 +67,18 @@ class AulaController extends Controller
 
     public function listagemCalendario(Request $request)
     {
-        // 1. Atualiza status de aulas passadas
         Aula::where('status', 'agendada')
             ->where('data_hora_inicio', '<', Carbon::now())
             ->update(['status' => 'realizada']);
 
-        // 2. Define datas
         $dataInicio = Carbon::parse($request->input('start'))->startOfDay();
         $dataFim = Carbon::parse($request->input('end'))->endOfDay();
 
-        // 3. Busca aulas (CORREÇÃO: Removemos as reagendadas da visualização)
         $aulas = Aula::with(['usuario:id,nome,celular', 'horarioAgenda:id,vagas_totais'])
             ->whereBetween('data_hora_inicio', [$dataInicio, $dataFim])
-            ->where('status', '!=', 'reagendada') // <--- ISSO FAZ ELAS SUMIREM DA AGENDA
+            ->where('status', '!=', 'reagendada')
             ->get();
 
-        // 4. Agrupa e Mapeia
         $eventosAgregados = $aulas->groupBy(function ($aula) {
             return $aula->data_hora_inicio->format('Y-m-d') . '_' . $aula->horario_agenda_id;
         })->map(function ($aulasDoSlot) {
@@ -139,24 +133,20 @@ class AulaController extends Controller
         return response()->json($eventosAgregados);
     }
 
-    // --- NOVO MÉTODO: Cancelar Aula Individual (Botão X) ---
     public function cancelar($id)
     {
         $aula = Aula::findOrFail($id);
         $usuarioLogado = Auth::user();
 
-        // Permite se for Admin OU se for o próprio aluno dono da aula
         if ($usuarioLogado->tipo !== 'admin' && $aula->usuario_id !== $usuarioLogado->id) {
             return response()->json(['message' => 'Não autorizado.'], 403);
         }
 
-        // Atualiza status para cancelada
         $aula->update(['status' => 'cancelada']);
 
         return response()->json(['message' => 'Aula cancelada com sucesso.']);
     }
 
-    // --- ATUALIZAÇÃO: Método Reagendar Individual ---
     public function reagendar(Request $request, $id)
     {
         $request->validate([
@@ -167,14 +157,13 @@ class AulaController extends Controller
         $aulaOriginal = Aula::findOrFail($id);
         $usuarioLogado = Auth::user();
 
-        // Verificações de permissão
+
         if ($usuarioLogado->tipo !== 'admin' && $aulaOriginal->usuario_id !== $usuarioLogado->id) {
             return response()->json(['message' => 'Não autorizado.'], 403);
         }
 
         $novaData = Carbon::parse($request->nova_data_hora);
 
-        // Verificação de conflito
         $jaTemAula = Aula::where('usuario_id', $aulaOriginal->usuario_id)
             ->where('status', 'agendada')
             ->whereBetween('data_hora_inicio', [
@@ -189,15 +178,11 @@ class AulaController extends Controller
         try {
             DB::transaction(function () use ($aulaOriginal, $request, $usuarioLogado, $novaData) {
 
-                // 1. AULA ANTIGA (A que fica amarela):
-                // AQUI ESTÁ A CORREÇÃO: A mensagem agora aponta para o FUTURO
                 $aulaOriginal->update([
                     'status' => 'reagendada',
                     'observacoes' => 'Nova data: ' . $novaData->format('d/m \à\s H:i')
                 ]);
 
-                // 2. AULA NOVA (A verde/azul):
-                // Nasce limpa, apenas com log interno
                 Aula::create([
                     'inscricao_id' => $aulaOriginal->inscricao_id,
                     'usuario_id' => $aulaOriginal->usuario_id,
@@ -215,7 +200,6 @@ class AulaController extends Controller
         }
     }
 
-    // ... (Mantenha os outros métodos: listarDisponiveis, disponiveisPublico, disponiveisParaReagendamento, cancelarTurma, reagendarTurma) ...
     public function listarDisponiveis()
     {
         $horariosDisponiveis = Aula::where('status', 'disponivel')
@@ -384,13 +368,11 @@ class AulaController extends Controller
                 }
 
                 foreach ($aulasOrigem as $aula) {
-                    // 1. ATUALIZA A ANTIGA COM O DESTINO
                     $aula->update([
                         'status' => 'reagendada',
                         'observacoes' => 'Nova data: ' . $novaDataHora->format('d/m \à\s H:i')
                     ]);
 
-                    // 2. CRIA A NOVA
                     Aula::create([
                         'inscricao_id' => $aula->inscricao_id,
                         'usuario_id' => $aula->usuario_id,

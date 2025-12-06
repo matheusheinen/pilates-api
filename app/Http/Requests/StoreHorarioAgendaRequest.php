@@ -8,7 +8,6 @@ class StoreHorarioAgendaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Ajuste conforme sua auth (ex: apenas admins)
         return true;
     }
 

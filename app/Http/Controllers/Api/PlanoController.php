@@ -10,44 +10,30 @@ use App\Http\Requests\UpdatePlanoRequest;
 
 class PlanoController extends Controller
 {
-    /**
-     * Lista todos os planos cadastrados.
-     */
+
     public function index()
     {
         $planos = Plano::all();
         return response()->json($planos);
     }
 
-    /**
-     * Cadastra um novo plano.
-     */
     public function store(StorePlanoRequest $request)
     {
         $plano = Plano::create($request->validated());
         return response()->json($plano, 201);
     }
 
-    /**
-     * Exibe um plano específico.
-     */
     public function show(Plano $plano)
     {
         return response()->json($plano);
     }
 
-    /**
-     * Atualiza um plano existente.
-     */
     public function update(UpdatePlanoRequest $request, Plano $plano)
     {
         $plano->update($request->validated());
         return response()->json($plano);
     }
 
-    /**
-     * Remove um plano.
-     */
     public function destroy(Plano $plano)
     {
         $plano->delete();

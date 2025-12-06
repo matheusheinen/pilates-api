@@ -27,9 +27,6 @@ class StoreUsuarioRequest extends FormRequest
         ];
     }
 
-    /**
-     * Opcional: Mensagens personalizadas para ficar mais amigável
-     */
     public function messages(): array
     {
         return [

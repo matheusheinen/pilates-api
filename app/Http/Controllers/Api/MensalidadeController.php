@@ -16,14 +16,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MensalidadeController extends Controller
 {
-    /**
-     * Lista as mensalidades com filtros.
-     */
+
     public function index(Request $request)
     {
-        // --- AUTO-ATUALIZAÇÃO DE STATUS (NOVO) ---
-        // Antes de listar, verifica se existem mensalidades 'pendente' vencidas
-        // e atualiza para 'atrasada'.
         Mensalidade::where('status', 'pendente')
             ->where('data_vencimento', '<', Carbon::now()->format('Y-m-d'))
             ->update(['status' => 'atrasada']);
@@ -31,8 +26,7 @@ class MensalidadeController extends Controller
 
         $query = Mensalidade::with(['inscricao.usuario', 'inscricao.plano', 'pagamento']);
 
-        // Filtro de Segurança para Aluno
-        $user = Auth::user(); // ou Auth::user() se preferir
+        $user = Auth::user();
         if ($user && $user->tipo === 'aluno') {
              $query->whereHas('inscricao', function($q) use ($user) {
                 $q->where('usuario_id', $user->id);
@@ -58,9 +52,6 @@ class MensalidadeController extends Controller
         return response()->json($mensalidades);
     }
 
-    /**
-     * Gera mensalidade manualmente (avulsa).
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -77,9 +68,6 @@ class MensalidadeController extends Controller
         }
     }
 
-    /**
-     * [ALUNO] Envia o comprovante de pagamento.
-     */
     public function enviarComprovante(Request $request, $id)
     {
         $request->validate([
@@ -119,10 +107,7 @@ class MensalidadeController extends Controller
         }
     }
 
-    /**
-     * [ADMIN] Registro Manual (Baixa direta).
-     * Gera a próxima mensalidade e aulas automaticamente.
-     */
+
     public function registrarPagamento(Request $request, $id)
     {
         $request->validate([
@@ -131,7 +116,6 @@ class MensalidadeController extends Controller
             'metodo_pagamento' => 'required|string',
         ]);
 
-        // Carrega a inscrição para a lógica de renovação
         $mensalidade = Mensalidade::with('inscricao.plano')->findOrFail($id);
 
         if ($mensalidade->status === 'paga') {
@@ -140,7 +124,6 @@ class MensalidadeController extends Controller
 
         try {
             DB::transaction(function () use ($mensalidade, $request) {
-                // 1. Registra ou atualiza o pagamento
                 if ($mensalidade->pagamento) {
                     $mensalidade->pagamento()->update([
                         'data_pagamento' => $request->data_pagamento,
@@ -157,10 +140,8 @@ class MensalidadeController extends Controller
                     ]);
                 }
 
-                // 2. Atualiza a Mensalidade
                 $mensalidade->update(['status' => 'paga']);
 
-                // 3. Renova
                 $this->processarRenovacao($mensalidade);
             });
 
@@ -172,9 +153,6 @@ class MensalidadeController extends Controller
         }
     }
 
-    /**
-     * [ADMIN] Aprova um pagamento em análise.
-     */
     public function aprovarPagamento($id)
     {
         $mensalidade = Mensalidade::with('inscricao.plano')->findOrFail($id);
@@ -198,9 +176,7 @@ class MensalidadeController extends Controller
         }
     }
 
-    /**
-     * [ADMIN] Rejeita um pagamento.
-     */
+
     public function rejeitarPagamento($id)
     {
         $mensalidade = Mensalidade::findOrFail($id);
@@ -221,9 +197,7 @@ class MensalidadeController extends Controller
         }
     }
 
-    /**
-     * Gera mensalidades em massa para o mês atual.
-     */
+
     public function gerarMassivo()
     {
         $inscricoesAtivas = Inscricao::where('status', 'ativa')->with('plano')->get();
@@ -231,7 +205,7 @@ class MensalidadeController extends Controller
         $totalGerado = 0;
 
         foreach ($inscricoesAtivas as $inscricao) {
-            // Sempre define o vencimento para o dia 10 do mês ATUAL da execução.
+
             $vencimento = Carbon::create($hoje->year, $hoje->month, 10);
 
             $existe = Mensalidade::where('inscricao_id', $inscricao->id)
@@ -253,12 +227,10 @@ class MensalidadeController extends Controller
         return response()->json(['message' => "{$totalGerado} mensalidades geradas para este mês."]);
     }
 
-    /**
-     * Lógica auxiliar para gerar a próxima mensalidade e liberar aulas.
-     */
+
     private function processarRenovacao(Mensalidade $mensalidadePaga)
     {
-        // Recarrega a inscrição se não estiver carregada
+
         if (!$mensalidadePaga->relationLoaded('inscricao')) {
             $mensalidadePaga->load('inscricao.plano');
         }
@@ -270,11 +242,10 @@ class MensalidadeController extends Controller
             return;
         }
 
-        // 1. Data da PRÓXIMA mensalidade
         $vencimentoAtual = Carbon::parse($mensalidadePaga->data_vencimento);
         $proximoVencimento = $vencimentoAtual->copy()->addMonth();
 
-        // 2. Verificar se já existe
+
         $existeProxima = Mensalidade::where('inscricao_id', $inscricao->id)
             ->whereMonth('data_vencimento', $proximoVencimento->month)
             ->whereYear('data_vencimento', $proximoVencimento->year)
@@ -290,7 +261,7 @@ class MensalidadeController extends Controller
             Log::info("Nova mensalidade gerada para {$proximoVencimento->format('Y-m-d')}");
         }
 
-        // 3. Gerar aulas até a data do PRÓXIMO vencimento
+
         $inscricao->gerarAulasFuturas($proximoVencimento);
     }
 
@@ -305,12 +276,10 @@ class MensalidadeController extends Controller
 
         $path = $mensalidade->pagamento->comprovante_path;
 
-        // Verifica se existe no disco público
         if (!Storage::disk('public')->exists($path)) {
             abort(404, 'Arquivo físico não encontrado.');
         }
 
-        // Retorna o arquivo para o navegador abrir
         return response()->file(Storage::disk('public')->path($path));
     }
 }

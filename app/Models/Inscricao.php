@@ -28,7 +28,6 @@ class Inscricao extends Model
         return $this->belongsTo(Plano::class);
     }
 
-    // DEFINIÇÃO CORRETA DO RELACIONAMENTO
     public function horariosAluno(): BelongsToMany
     {
         return $this->belongsToMany(HorarioAgenda::class, 'horarios_aluno', 'inscricao_id', 'horario_agenda_id')
@@ -36,24 +35,19 @@ class Inscricao extends Model
                     ->withTimestamps();
     }
 
-    /**
-     * Gera as aulas reais na tabela 'aulas'.
-     */
     public function gerarAulasFuturas($dataLimite = null): void
     {
         $horariosFixos = $this->horariosAluno()
                               ->wherePivot('status', 'ativo')
                               ->get();
 
-        // SEPARAÇÃO DA LÓGICA DE DATA LIMITE
+
         if ($dataLimite) {
             $dataFimGeracao = Carbon::parse($dataLimite);
         } else {
-            // Regra padrão: dia 10 do próximo mês
             $dataFimGeracao = Carbon::today()->addMonth()->day(10);
         }
 
-        // Garante que a geração comece de hoje ou da data de início (se for futura)
         $dataAtual = Carbon::parse($this->data_inicio)->isPast() ? Carbon::today() : Carbon::parse($this->data_inicio);
         $dataAtual->startOfDay();
 
@@ -69,7 +63,7 @@ class Inscricao extends Model
                         ->first();
 
                     if ($aulaExistente) {
-                        // Reativa aula cancelada se o pagamento renovou o período
+
                         if ($aulaExistente->status === 'cancelada') {
                             $aulaExistente->update([
                                 'status' => 'agendada',
@@ -77,7 +71,7 @@ class Inscricao extends Model
                             ]);
                         }
                     } else {
-                        // Cria nova aula
+
                         $dataHoraInicio = Carbon::parse($dataAtual->format('Y-m-d') . ' ' . $horarioAgenda->horario_inicio);
 
                         Aula::create([

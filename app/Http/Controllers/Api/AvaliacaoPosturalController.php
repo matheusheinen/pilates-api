@@ -17,12 +17,10 @@ class AvaliacaoPosturalController extends Controller
         try {
             $query = AvaliacaoPostural::query();
 
-            // Filtro por usuário se fornecido
             if ($request->has('usuario_id')) {
                 $query->where('usuario_id', $request->usuario_id);
             }
 
-            // Se solicitar a mais recente
             if ($request->has('latest') && $request->latest === 'true') {
                 $query->latest('data_avaliacao')->first();
                 return response()->json($query->latest('data_avaliacao')->first());
@@ -49,34 +47,32 @@ class AvaliacaoPosturalController extends Controller
         }
     }
 
-    // ... métodos index, show, etc ...
 
     public function store(StoreAvaliacaoPosturalRequest $request)
     {
         try {
-            // Pega todos os dados validados
+
             $dados = $request->validated();
 
-            // Se tiver arquivo, salva e coloca o caminho no array de dados
+
             if ($request->hasFile('anexo')) {
                 $dados['caminho_anexo'] = $request->file('anexo')->store('anexos_posturais', 'public');
             }
 
-            // Remove o campo 'anexo' (arquivo físico) do array de dados para não quebrar o SQL
+
             unset($dados['anexo']);
 
-            // Cria o registro
+
             $avaliacao = AvaliacaoPostural::create($dados);
 
             return response()->json($avaliacao, 201);
 
         } catch (\Exception $e) {
-            // Loga o erro real no arquivo storage/logs/laravel.log
             \Illuminate\Support\Facades\Log::error("Erro Avaliação: " . $e->getMessage());
 
             return response()->json([
                 'message' => 'Erro ao salvar avaliação.',
-                'error' => $e->getMessage() // Retorna o erro para o front ler
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -87,13 +83,11 @@ class AvaliacaoPosturalController extends Controller
             $avaliacao = AvaliacaoPostural::findOrFail($id);
             $dados = $request->validated();
 
-            // 1. Remover anexo se solicitado
             if ($request->has('remover_anexo') && $avaliacao->caminho_anexo) {
                 Storage::disk('public')->delete($avaliacao->caminho_anexo);
                 $dados['caminho_anexo'] = null;
             }
 
-            // 2. Upload de novo arquivo
             if ($request->hasFile('anexo')) {
                 if ($avaliacao->caminho_anexo) {
                     Storage::disk('public')->delete($avaliacao->caminho_anexo);

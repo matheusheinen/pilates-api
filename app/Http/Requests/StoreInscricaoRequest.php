@@ -8,7 +8,6 @@ class StoreInscricaoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Se a rota for protegida por sanctum (admin logado), TRUE é o padrão
         return true;
     }
 

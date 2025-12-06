@@ -54,9 +54,6 @@ class Usuario extends Authenticatable
         return $this->hasMany(Aula::class);
     }
 
-    /**
-     * Informa ao Laravel que a nossa coluna de senha se chama 'senha'.
-     */
     public function getAuthPasswordName()
     {
         return 'senha';

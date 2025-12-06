@@ -15,7 +15,7 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        // 1. Validação genérica
+
         $request->validate([
             'login' => 'required|string',
             'senha' => 'required',
@@ -23,14 +23,8 @@ class AuthController extends Controller
 
         $loginIdentifier = $request->input('login');
 
-        // 2. Determina o campo de busca (email ou cpf)
-
-        // Remove tudo que não é dígito (pontos e traços do CPF)
         $cleanIdentifier = preg_replace('/\D/', '', $loginIdentifier);
 
-        // Lógica de decisão:
-        // Se for um formato de email válido, busca por email.
-        // Caso contrário, assume que é um CPF (usando apenas os números).
         if (filter_var($loginIdentifier, FILTER_VALIDATE_EMAIL)) {
             $fieldType = 'email';
             $searchValue = $loginIdentifier;
@@ -39,17 +33,14 @@ class AuthController extends Controller
             $searchValue = $cleanIdentifier;
         }
 
-        // 3. Busca o usuário no campo determinado
         $usuario = Usuario::where($fieldType, $searchValue)->first();
 
-        // 4. Checagem manual de usuário e senha
         if (! $usuario || ! Hash::check($request->senha, $usuario->senha)) {
             throw ValidationException::withMessages([
                 'login' => ['Credenciais incorretas (Verifique E-mail/CPF e Senha).'],
             ])->status(401);
         }
 
-        // 5. Criação do Token
         $token = $usuario->createToken('auth_token')->plainTextToken;
 
         return response()->json([

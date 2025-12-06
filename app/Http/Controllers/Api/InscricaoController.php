@@ -33,12 +33,9 @@ class InscricaoController extends Controller
 
     public function store(StoreInscricaoRequest $request): JsonResponse
     {
-        // ... (código do store mantido igual ao anterior) ...
-        // Vou omitir aqui para focar no update, mas mantenha o que fizemos antes.
         $dadosValidados = $request->validated();
 
         try {
-            // Validação de Vagas
             $horariosAValidar = HorarioAgenda::whereIn('id', $dadosValidados['horarios_agenda_ids'])
                 ->withCount(['horariosAluno as ocupacao' => function ($query) {
                     $query->where('horarios_aluno.status', 'ativo');
@@ -73,7 +70,6 @@ class InscricaoController extends Controller
 
                 $inscricao->gerarAulasFuturas();
 
-                // GERA A PRIMEIRA MENSALIDADE
                 $inscricao->load('plano');
                 $primeiroVencimento = Carbon::parse($dadosValidados['data_inicio'])->addMonth()->day(10);
 
@@ -94,9 +90,6 @@ class InscricaoController extends Controller
         }
     }
 
-    /**
-     * Atualiza o Contrato, Horários, Aulas e MENSALIDADES.
-     */
     public function update(UpdateInscricaoRequest $request, $id): JsonResponse
     {
         $dadosValidados = $request->validated();
@@ -114,15 +107,10 @@ class InscricaoController extends Controller
                 $statusPivo = ($dadosValidados['status'] === 'ativa' || $dadosValidados['status'] === 'trancada') ? 'ativo' : 'inativo';
                 $now = Carbon::now();
 
-                // --- CORREÇÃO DE AULAS (ADICIONADO) ---
-                // Cancela TODAS as aulas futuras antes de mudar os horários.
-                // Isso garante que as aulas dos horários antigos deixem de estar "agendadas".
                 $inscricao->deletarAulasFuturas();
 
-                // 1. Remove antigos vínculos
                 DB::table('horarios_aluno')->where('inscricao_id', $inscricaoId)->delete();
 
-                // 2. Insere novos vínculos
                 $insertData = [];
                 foreach ($dadosValidados['horarios_agenda_ids'] as $idAgenda) {
                     $insertData[] = [
@@ -139,14 +127,11 @@ class InscricaoController extends Controller
 
                 $inscricao->refresh();
 
-                // 3. GESTÃO DE AULAS E MENSALIDADES
+
                 if ($dadosValidados['status'] === 'ativa') {
-                    // A. Gera Aulas (Para os NOVOS horários)
-                    // Nota: A função gerarAulasFuturas que ajustamos antes vai pegar as aulas
-                    // que acabamos de cancelar e REATIVAR apenas se elas baterem com o novo horário.
+
                     $inscricao->gerarAulasFuturas();
 
-                    // B. Gera Mensalidade Futura (Lógica mantida...)
                     $proximoVencimento = Carbon::now()->addMonth()->day(10);
 
                     $existeMensalidade = Mensalidade::where('inscricao_id', $inscricaoId)
@@ -165,8 +150,6 @@ class InscricaoController extends Controller
                     }
 
                 } else {
-                    // Se não for ativa, já cancelamos tudo lá em cima,
-                    // mas limpamos as mensalidades pendentes aqui.
                     Mensalidade::where('inscricao_id', $inscricaoId)
                         ->where('status', 'pendente')
                         ->where('data_vencimento', '>=', Carbon::now())
@@ -181,7 +164,6 @@ class InscricaoController extends Controller
         }
     }
 
-    // Auxiliar para mensagem de erro bonita
     private function formatarDia($dia) {
         $dias = [1=>'Segunda', 2=>'Terça', 3=>'Quarta', 4=>'Quinta', 5=>'Sexta', 6=>'Sábado', 7=>'Domingo'];
         return $dias[$dia] ?? 'Dia Inválido';

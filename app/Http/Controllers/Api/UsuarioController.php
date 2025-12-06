@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Usuario;
-use App\Models\Aula; // <--- Importante: Importar o Model Aula
+use App\Models\Aula;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB; // <--- Importante: Para usar transações
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\StoreUsuarioRequest;
 use App\Http\Requests\UpdateUsuarioRequest;
@@ -22,7 +22,6 @@ class UsuarioController extends Controller
 
     public function store(StoreUsuarioRequest $request)
     {
-        // Inicia uma transação: ou salva tudo (usuário + aula) ou não salva nada
         DB::beginTransaction();
 
         try {
@@ -34,34 +33,27 @@ class UsuarioController extends Controller
 
             $dadosValidados['senha'] = Hash::make($dadosValidados['senha']);
 
-            // 1. Cria o Usuário
             $usuario = Usuario::create($dadosValidados);
 
-            // 2. Verifica se veio o pedido de agendamento (aula_interesse)
-            // Nota: Usamos $request->input porque 'aula_interesse' provavelmente não está no rules() do StoreUsuarioRequest
             $aulaInteresse = $request->input('aula_interesse');
 
             if ($aulaInteresse && is_array($aulaInteresse)) {
 
-                // Cria a aula experimental/inicial
                 Aula::create([
                     'usuario_id' => $usuario->id,
                     'horario_agenda_id' => $aulaInteresse['horario_agenda_id'],
-                    'data_hora_inicio' => $aulaInteresse['data_hora'], // Formato ISO enviado pelo front
+                    'data_hora_inicio' => $aulaInteresse['data_hora'],
                     'status' => 'agendada',
-                    'duracao_minutos' => 50, // Padrão ou buscar do HorarioAgenda
+                    'duracao_minutos' => 50,
                     'observacoes' => 'Primeira aula (Agendada no Cadastro)',
-                    // 'inscricao_id' => null // Aula avulsa/experimental geralmente não tem inscrição ainda
                 ]);
             }
 
-            // Confirma as alterações no banco
             DB::commit();
 
             return response()->json($usuario, 201);
 
         } catch (\Exception $e) {
-            // Se der erro, desfaz tudo
             DB::rollback();
             Log::error("Erro ao cadastrar usuário: " . $e->getMessage());
 

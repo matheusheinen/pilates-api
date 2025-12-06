@@ -18,7 +18,6 @@ class AvaliacaoPostural extends Model
         'queixa_principal',
         'diagnostico_clinico',
         'data_avaliacao',
-        // ... (todos os campos de medidas) ...
         'anterior_cabeca', 'anterior_ombros_altura', 'anterior_maos_altura',
         'anterior_tronco_rotacao', 'anterior_angulo_tales', 'anterior_cicatriz_umbilical',
         'anterior_iliacas_altura', 'anterior_joelhos', 'anterior_tornozelos', 'anterior_pes',
@@ -28,15 +27,10 @@ class AvaliacaoPostural extends Model
         'lateral_cabeca', 'lateral_cervical', 'lateral_ombro', 'lateral_membro_superior',
         'lateral_toracica', 'lateral_tronco_rotacao', 'lateral_abdomen', 'lateral_lombar',
         'lateral_pelve', 'lateral_quadril', 'lateral_joelho',
-
-        'caminho_anexo', // Correto
+        'caminho_anexo',
         'observacoes'
     ];
 
-    // REMOVA OU COMENTE ESTA PARTE:
-    // protected $casts = [
-    //     'anexos' => 'array',
-    // ];
 
     public function usuario()
     {

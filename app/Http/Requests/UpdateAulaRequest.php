@@ -8,9 +8,7 @@ use App\Models\Aula;
 
 class UpdateAulaRequest extends FormRequest
 {
-    /**
-     * Determina se o usuário está autorizado a fazer esta requisição.
-     */
+
     public function authorize(): bool
     {
         $aula = $this->route('aula');
@@ -20,11 +18,6 @@ class UpdateAulaRequest extends FormRequest
         return $usuario->tipo === 'admin' || $usuario->id === $aula->usuario_id;
     }
 
-    /**
-     * Obtém as regras de validação que se aplicam à requisição.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [

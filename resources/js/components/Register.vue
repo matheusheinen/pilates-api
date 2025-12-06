@@ -43,7 +43,7 @@
                     @input="formatarCPF"
                     maxlength="14"
                     type="text"
-                    placeholder="CPF (apenas números será enviado)"
+                    placeholder="CPF"
                     class="form-input"
                 >
 

@@ -40,7 +40,7 @@ class HorarioAgendaController extends Controller
 
     public function store(Request $request)
     {
-        // Validação básica dos campos
+
         $request->validate([
             'dia_semana' => 'required|integer|between:1,7',
             'horario_inicio' => 'required', // formato H:i
@@ -48,7 +48,6 @@ class HorarioAgendaController extends Controller
             'vagas_totais' => 'required|integer|min:1',
         ]);
 
-        // --- VALIDAÇÃO DE CONFLITO DE HORÁRIO ---
         $conflito = $this->verificarConflito(
             $request->dia_semana,
             $request->horario_inicio,
@@ -60,7 +59,6 @@ class HorarioAgendaController extends Controller
                 'message' => 'Choque de horário! Já existe um horário cadastrado neste intervalo de tempo.'
             ], 422);
         }
-        // ----------------------------------------
 
         $horario = HorarioAgenda::create($request->all());
 
@@ -77,13 +75,11 @@ class HorarioAgendaController extends Controller
             'duracao_minutos' => 'sometimes|integer|min:10',
         ]);
 
-        // Dados para verificação (usa o novo se enviado, ou mantém o antigo)
+
         $dia = $request->dia_semana ?? $horarioAgenda->dia_semana;
         $inicio = $request->horario_inicio ?? $horarioAgenda->horario_inicio;
         $duracao = $request->duracao_minutos ?? $horarioAgenda->duracao_minutos;
 
-        // --- VALIDAÇÃO DE CONFLITO DE HORÁRIO ---
-        // Passamos o ID atual para ignorar ele mesmo na verificação
         $conflito = $this->verificarConflito($dia, $inicio, $duracao, $id);
 
         if ($conflito) {
@@ -91,15 +87,12 @@ class HorarioAgendaController extends Controller
                 'message' => 'Choque de horário! A alteração conflita com outro horário existente.'
             ], 422);
         }
-        // ----------------------------------------
 
-        $horarioMudou = $horarioAgenda->horario_inicio != $inicio ||
-                       $horarioAgenda->duracao_minutos != $duracao;
+        $horarioMudou = $horarioAgenda->horario_inicio != $inicio || $horarioAgenda->duracao_minutos != $duracao;
 
-        // Atualiza
+
         $horarioAgenda->update($request->all());
 
-        // Sincroniza Aulas Futuras se o horário mudou
         if ($horarioMudou) {
             $this->sincronizarAulasFuturas($horarioAgenda, $inicio, $duracao);
         }
@@ -124,20 +117,14 @@ class HorarioAgendaController extends Controller
         }
     }
 
-    /**
-     * Verifica se o novo horário colide com algum existente.
-     * Retorna TRUE se houver conflito.
-     */
+
     private function verificarConflito($diaSemana, $horaInicio, $duracao, $ignorarId = null)
     {
-        // 1. Calcula início e fim do NOVO horário
-        // Usamos uma data arbitrária (hoje) apenas para poder somar os minutos corretamente
         $novoInicio = Carbon::parse($horaInicio);
         $novoFim = $novoInicio->copy()->addMinutes($duracao);
 
-        // 2. Busca todos os horários do MESMO DIA
         $query = HorarioAgenda::where('dia_semana', $diaSemana)
-            ->where('status', 'ativo'); // Opcional: só checa conflito com ativos
+            ->where('status', 'ativo');
 
         if ($ignorarId) {
             $query->where('id', '!=', $ignorarId);
@@ -145,25 +132,18 @@ class HorarioAgendaController extends Controller
 
         $horariosExistentes = $query->get();
 
-        // 3. Compara com cada horário existente
         foreach ($horariosExistentes as $existente) {
             $existenteInicio = Carbon::parse($existente->horario_inicio);
             $existenteFim = $existenteInicio->copy()->addMinutes($existente->duracao_minutos);
 
-            // Lógica de Colisão de Intervalos:
-            // (InicioA < FimB) E (FimA > InicioB)
-            // Se isso for verdade, os horários se sobrepõem.
             if ($novoInicio->lessThan($existenteFim) && $novoFim->greaterThan($existenteInicio)) {
-                return true; // Encontrou conflito
+                return true;
             }
         }
 
-        return false; // Sem conflitos
+        return false;
     }
 
-    /**
-     * Atualiza as aulas agendadas no futuro para refletir a mudança no horário base.
-     */
     private function sincronizarAulasFuturas($horarioAgenda, $novoInicio, $novaDuracao)
     {
         $dataAtual = Carbon::now();
@@ -173,7 +153,6 @@ class HorarioAgendaController extends Controller
             ->where('status', 'agendada') // Só altera aulas agendadas
             ->get()
             ->each(function ($aula) use ($novoInicio, $novaDuracao) {
-                // Mantém a data original da aula, muda apenas a hora
                 $dataOriginal = Carbon::parse($aula->data_hora_inicio)->format('Y-m-d');
                 $novaDataHora = Carbon::parse($dataOriginal . ' ' . $novoInicio);
 

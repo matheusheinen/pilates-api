@@ -12,7 +12,7 @@ class Pagamento extends Model
         'data_pagamento',
         'valor_pago',
         'metodo_pagamento',
-        'comprovante_path', // <--- Adicionado
+        'comprovante_path',
         'status'
     ];
 
