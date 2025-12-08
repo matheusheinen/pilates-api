@@ -14,21 +14,16 @@
         </div>
         <router-link
           :to="{ name: 'detalhes-cliente', params: { id: props.id } }"
-          class="text-gray-400 hover:text-white transition-colors flex items-center gap-2 text-sm bg-white/5 px-4 py-2 rounded-lg"
+          class="text-gray-400 hover:text-white transition-colors flex items-center gap-2 text-sm bg-white/5 px-4 py-2 rounded-lg border border-white/5 hover:border-white/20"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           Voltar
         </router-link>
       </div>
 
-      <div class="bg-[#121212]/40 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl w-full max-w-4xl mx-auto">
+      <div class="bg-[#1e1e1e] border border-white/5 p-8 rounded-2xl shadow-xl w-full max-w-4xl mx-auto">
 
         <form @submit.prevent="submitForm" class="space-y-6">
-
-          <div v-if="errorMessage" class="bg-red-500/20 border border-red-500/50 text-red-300 text-sm p-4 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            {{ errorMessage }}
-          </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div class="md:col-span-2">
@@ -47,7 +42,7 @@
                 v-model="form.cpf"
                 type="text"
                 disabled
-                class="form-input opacity-50 cursor-not-allowed bg-gray-800/50"
+                class="form-input opacity-50 cursor-not-allowed bg-[#151515]"
               >
             </div>
 
@@ -122,7 +117,7 @@
           <button
             type="submit"
             :disabled="saving"
-            class="w-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-teal-900/20 transform hover:-translate-y-0.5 mt-6 flex justify-center items-center gap-2"
+            class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-teal-900/20 transform hover:-translate-y-0.5 mt-6 flex justify-center items-center gap-2"
           >
             <svg v-if="saving" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <span>{{ saving ? 'Salvando Alterações...' : 'Salvar Alterações' }}</span>
@@ -137,15 +132,19 @@
 import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
 import { useRoute, useRouter } from 'vue-router';
+// 1. IMPORTAR ALERT
+import { useAlert } from '../../composables/useAlert';
 
 const route = useRoute();
 const router = useRouter();
 const props = defineProps(['id']);
+// 2. EXTRAIR MÉTODOS
+const { mostrarSucesso, mostrarErro } = useAlert();
 
 const cliente = ref(null);
 const loading = ref(true);
 const saving = ref(false);
-const errorMessage = ref('');
+// errorMessage removido
 
 const form = reactive({
   nome: '',
@@ -155,12 +154,12 @@ const form = reactive({
   data_nascimento: '',
   genero: '',
   profissao: '',
-  lateralidade: '', // Nome corrigido (banco: lateralidade)
+  lateralidade: '',
   senha: '',
   confirmarSenha: ''
 });
 
-// --- MÁSCARAS MANUAIS ---
+// Helpers de formatação
 const formatarCelular = (event) => {
   let value = event.target.value.replace(/\D/g, '');
   if (value.length > 11) value = value.slice(0, 11);
@@ -169,7 +168,6 @@ const formatarCelular = (event) => {
   form.celular = value;
 };
 
-// Formata string apenas para exibição inicial (se vier limpa do banco)
 const aplicarMascaraCPF = (cpfLimpo) => {
     if (!cpfLimpo) return '';
     let value = cpfLimpo.replace(/\D/g, '');
@@ -179,7 +177,6 @@ const aplicarMascaraCPF = (cpfLimpo) => {
     return value;
 };
 
-// Formata celular para exibição inicial
 const aplicarMascaraCelular = (celLimpo) => {
     if (!celLimpo) return '';
     let value = celLimpo.replace(/\D/g, '');
@@ -195,24 +192,20 @@ const fetchCliente = async () => {
     const response = await axios.get(`/api/usuarios/${props.id}`);
     cliente.value = response.data;
 
-    // Preenche o formulário
     form.nome = cliente.value.nome;
     form.email = cliente.value.email;
     form.cpf = aplicarMascaraCPF(cliente.value.cpf);
     form.celular = aplicarMascaraCelular(cliente.value.celular);
     form.data_nascimento = cliente.value.data_nascimento;
     form.profissao = cliente.value.profissao || '';
-
-    // Mapeamento cuidadoso para garantir que o select funcione (lowercase)
     form.genero = cliente.value.genero ? cliente.value.genero.toLowerCase() : '';
 
-    // Tenta 'lateralidade' (correto) ou 'lateridade' (legado)
     const lat = cliente.value.lateralidade || cliente.value.lateridade;
     form.lateralidade = lat ? lat.toLowerCase() : '';
 
   } catch (error) {
     console.error("Erro ao buscar cliente:", error);
-    errorMessage.value = "Erro ao carregar os dados do cliente.";
+    mostrarErro("Erro ao carregar os dados do cliente.");
   } finally {
     loading.value = false;
   }
@@ -220,30 +213,27 @@ const fetchCliente = async () => {
 
 const submitForm = async () => {
   saving.value = true;
-  errorMessage.value = '';
 
   if (form.senha) {
       if (form.senha.length < 8) {
-        errorMessage.value = "A nova senha deve ter no mínimo 8 caracteres.";
+        mostrarErro("A nova senha deve ter no mínimo 8 caracteres.");
         saving.value = false;
         return;
       }
       if (form.senha !== form.confirmarSenha) {
-          errorMessage.value = "A confirmação da senha não confere.";
+          mostrarErro("A confirmação da senha não confere.");
           saving.value = false;
           return;
       }
   }
 
-  // Prepara payload
   const payload = {
       ...form,
       celular: form.celular ? form.celular.replace(/\D/g, '') : null,
-      lateralidade: form.lateralidade, // Garante envio correto
+      lateralidade: form.lateralidade,
   };
 
-  // Remove campos que não devem ser enviados ou estão vazios
-  delete payload.cpf; // CPF não edita
+  delete payload.cpf;
   delete payload.confirmarSenha;
 
   if (!payload.senha) {
@@ -253,18 +243,24 @@ const submitForm = async () => {
   try {
     await axios.put(`/api/usuarios/${props.id}`, payload);
 
-    // Redireciona com sucesso
-    router.push({ name: 'detalhes-cliente', params: { id: props.id } });
+    // 3. SUCESSO MODERNO
+    mostrarSucesso("Dados atualizados com sucesso!");
+
+    // Pequeno delay para o usuário ver a mensagem antes de sair
+    setTimeout(() => {
+        router.push({ name: 'detalhes-cliente', params: { id: props.id } });
+    }, 1500);
+
   } catch (error) {
     if (error.response && error.response.data) {
          if(error.response.data.errors) {
             const firstErrorKey = Object.keys(error.response.data.errors)[0];
-            errorMessage.value = error.response.data.errors[firstErrorKey][0];
+            mostrarErro(error.response.data.errors[firstErrorKey][0]);
          } else {
-            errorMessage.value = error.response.data.message || "Ocorreu um erro ao salvar.";
+            mostrarErro(error.response.data.message || "Ocorreu um erro ao salvar.");
          }
     } else {
-        errorMessage.value = "Ocorreu um erro ao salvar as alterações.";
+        mostrarErro("Ocorreu um erro ao salvar as alterações.");
     }
   } finally {
     saving.value = false;
@@ -276,7 +272,7 @@ onMounted(fetchCliente);
 
 <style scoped>
 .form-input {
-  @apply w-full p-4 rounded-xl bg-[#0a0a0a]/60 border border-gray-700 text-white placeholder-gray-500 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all outline-none;
+  @apply w-full p-4 rounded-xl bg-[#242424] border border-[#333] text-white placeholder-gray-500 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all outline-none;
 }
 .label-custom {
   @apply block text-xs font-medium text-gray-400 mb-2 ml-1 uppercase tracking-wide;

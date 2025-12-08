@@ -188,6 +188,10 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { format, parseISO, addDays, startOfWeek, endOfWeek, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarSucesso, mostrarErro, mostrarConfirmacao } = useAlert();
+
 
 const loading = ref(false);
 const aulas = ref([]);
@@ -298,18 +302,18 @@ const buscarVagas = async () => {
 };
 
 const confirmarReagendamento = async (vaga) => {
-    if (!confirm(`Confirmar reagendamento para ${vaga.dia_semana} às ${vaga.horario.substring(0,5)}?`)) return;
+    if (!await mostrarConfirmacao(`Confirmar reagendamento para ${vaga.dia_semana} às ${vaga.horario.substring(0,5)}?`)) return;
 
     try {
         await axios.post(`/api/aulas/${aulaParaReagendar.value.id}/reagendar`, {
             nova_data_hora: vaga.data_hora,
             id_agenda_destino: vaga.id_agenda
         });
-        alert("Sucesso! Aula reagendada.");
+        mostrarSucesso("Sucesso! Aula reagendada.");
         fecharReagendamento();
         fetchAulas();
     } catch (error) {
-        alert("Erro: " + (error.response?.data?.message || 'Tente novamente.'));
+        mostrarErro("Erro: " + (error.response?.data?.message || 'Tente novamente.'));
     }
 };
 

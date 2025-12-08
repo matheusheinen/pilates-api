@@ -158,6 +158,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarSucesso, mostrarErro, mostrarConfirmacao } = useAlert();
 
 const mensalidades = ref([]);
 const paginacao = ref({});
@@ -220,7 +223,7 @@ const mudarPagina = (page) => {
 };
 
 const aprovar = async (id) => {
-    if(!confirm('Confirmar o recebimento deste pagamento? O status mudará para PAGO.')) return;
+    if(!await mostrarConfirmacao('Confirmar o recebimento deste pagamento? O status mudará para PAGO.')) return;
     try {
         await axios.post(`/api/mensalidades/${id}/aprovar`);
         fetchMensalidades(paginacao.value.current_page);
@@ -230,7 +233,7 @@ const aprovar = async (id) => {
 };
 
 const rejeitar = async (id) => {
-    if(!confirm('Rejeitar este comprovante? O status voltará para PENDENTE para que o aluno envie outro.')) return;
+    if(!await mostrarConfirmacao('Rejeitar este comprovante? O status voltará para PENDENTE para que o aluno envie outro.')) return;
     try {
         await axios.post(`/api/mensalidades/${id}/rejeitar`);
         fetchMensalidades(paginacao.value.current_page);

@@ -49,6 +49,11 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarSucesso, mostrarErro } = useAlert();
+
 
 const mensalidades = ref([]);
 const loading = ref(true);
@@ -83,10 +88,10 @@ const enviarComprovante = async (event, id) => {
         await axios.post(`/api/mensalidades/${id}/comprovante`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        alert("Comprovante enviado com sucesso!");
+        mostrarSucesso("Comprovante enviado com sucesso!");
         fetchMensalidades();
     } catch (error) {
-        alert("Erro ao enviar: " + (error.response?.data?.message || 'Tente novamente.'));
+        mostrarErro("Erro ao enviar: " + (error.response?.data?.message || 'Tente novamente.'));
     } finally {
         uploadingId.value = null;
     }

@@ -46,6 +46,7 @@
         <router-view />
       </section>
     </main>
+    <AlertAdmin />
   </div>
 </template>
 
@@ -53,14 +54,13 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-// ÍCONES: Adicionado Banknote para Mensalidades
 import { UsersRound, CalendarCheck, Clock, LogOut, CreditCard, Banknote } from 'lucide-vue-next';
 import logoUrl from '../../../assets/logo.png';
+import AlertAdmin from '../AlertAdmin.vue';
 
 const router = useRouter();
 const usuario = ref(JSON.parse(localStorage.getItem('userData')) || {});
 
-// LISTA DE ITENS ATUALIZADA
 const menuItems = ref([
     { label: "Agenda", icon: CalendarCheck, routeName: 'admin-agenda' },
     { label: "Horários da Agenda", icon: Clock, routeName: 'admin-horarios' },

@@ -35,7 +35,7 @@ class UpdateUsuarioRequest extends FormRequest
             'data_nascimento' => 'nullable|date',
             'profissao' => 'nullable|string|max:255',
             'celular' => 'required|string|min:10|max:20',
-            'lateralidade' => ['nullable', 'string', Rule::in(['destro', 'canhoto'])],
+            'lateralidade' => ['nullable', 'string', Rule::in(['destro', 'canhoto', 'ambidestro'])],
         ];
     }
 }

@@ -111,6 +111,11 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarErro } = useAlert();
+
+
 
 const props = defineProps({
   id: { type: [String, Number], required: true }
@@ -147,7 +152,7 @@ const carregarAnexo = async (avaliacaoId) => {
     } catch (error) {
         console.error('Erro ao carregar anexo via API:', error);
         // Mostra mensagem amigável ao usuário
-        alert('Não foi possível carregar o anexo. Verifique se o arquivo existe ou tente novamente.');
+        mostrarErro('Não foi possível carregar o anexo. Verifique se o arquivo existe ou tente novamente.');
     } finally {
         loadingAnexo.value = false;
     }

@@ -35,6 +35,7 @@
             <select v-model="form.status" class="form-input" :disabled="isCancelada" :class="{'text-red-400': form.status !== 'ativa', 'text-green-400': form.status === 'ativa'}" required>
                 <option value="ativa">ATIVA</option>
                 <option value="inativa">INATIVA (Suspensa)</option>
+                <option value="trancada">TRANCADA (Pausa)</option>
                 <option value="cancelada">CANCELADA (Encerrada)</option>
             </select>
           </div>

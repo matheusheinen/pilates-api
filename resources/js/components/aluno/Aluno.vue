@@ -46,6 +46,7 @@
       </router-link>
 
     </nav>
+    <AlertMobile />
   </div>
 </template>
 
@@ -53,6 +54,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import AlertMobile from '../AlertMobile.vue';
 
 const router = useRouter();
 const usuario = ref(JSON.parse(localStorage.getItem('userData')) || {});

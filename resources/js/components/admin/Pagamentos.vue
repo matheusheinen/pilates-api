@@ -161,10 +161,14 @@
 <script setup>
 import { ref, onMounted, computed, reactive } from 'vue';
 import axios from 'axios';
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarSucesso, mostrarErro, mostrarConfirmacao } = useAlert();
 
 const props = defineProps({
     id: { type: [String, Number], required: true }
 });
+
 
 const mensalidades = ref([]);
 const paginacao = ref({});
@@ -202,11 +206,11 @@ const fetchHistorico = async (page = 1) => {
 const mudarPagina = (page) => { if (page >= 1 && page <= paginacao.value.last_page) fetchHistorico(page); };
 
 const aprovar = async (id) => {
-    if(!confirm('Confirmar pagamento?')) return;
+    if(!await mostrarConfirmacao('Confirmar pagamento?')) return;
     try { await axios.post(`/api/mensalidades/${id}/aprovar`); fetchHistorico(paginacao.value.current_page); } catch(e) { alert('Erro.'); }
 };
 const rejeitar = async (id) => {
-    if(!confirm('Rejeitar comprovante?')) return;
+    if(!await mostrarConfirmacao('Rejeitar comprovante?')) return;
     try { await axios.post(`/api/mensalidades/${id}/rejeitar`); fetchHistorico(paginacao.value.current_page); } catch(e) { alert('Erro.'); }
 };
 

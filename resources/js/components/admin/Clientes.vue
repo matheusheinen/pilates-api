@@ -64,6 +64,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
+import { useAlert } from '../../composables/useAlert';
+const { mostrarErro } = useAlert();
 
 const todosClientes = ref([]);
 const termoBusca = ref('');
@@ -76,7 +78,7 @@ const fetchClientes = async () => {
     todosClientes.value = response.data.data.filter(user => user.tipo === 'aluno');
   } catch (error) {
     console.error("Erro ao buscar clientes:", error);
-    alert("Não foi possível carregar a lista de clientes.");
+    mostrarErro("Não foi possível carregar a lista de clientes.");
   } finally {
     loading.value = false;
   }

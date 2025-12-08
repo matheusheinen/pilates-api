@@ -1,10 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-// Componentes (Imports mantidos...)
 import Login from '../components/Login.vue';
 import Register from '../components/Register.vue';
+import Home from '../components/Home.vue';
 
-// Admin Components (Imports mantidos...)
 import AdminLayout from '../components/admin/Admin.vue';
 import Agenda from '../components/admin/Agenda.vue';
 import HorariosAgenda from '../components/admin/HorariosAgenda.vue';
@@ -21,7 +20,6 @@ import EditarInscricao from '../components/admin/EditarInscricao.vue';
 import Mensalidades from '../components/admin/Mensalidades.vue';
 import Pagamentos from '../components/admin/Pagamentos.vue';
 
-// Aluno Components
 import StudentLayout from '../components/aluno/Aluno.vue';
 import AlunoHome from '../components/aluno/Home.vue';
 import AlunoAgenda from '../components/aluno/Agenda.vue';
@@ -31,9 +29,7 @@ import AlunoPerfil from '../components/aluno/Perfil.vue';
 const routes = [
     { path: '/login', name: 'login', component: Login },
     { path: '/register', name: 'register', component: Register },
-    { path: '/', redirect: '/login' },
-
-    // --- ADMIN ---
+    { path: '/', name: 'home', component: Home },
     {
         path: '/admin',
         component: AdminLayout,

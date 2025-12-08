@@ -11,10 +11,6 @@
               {{ modoEdicao ? 'Editar Horário' : 'Adicionar Novo Horário' }}
           </h4>
 
-          <div v-if="mensagemErro" class="p-3 bg-red-900/50 border border-red-800 text-red-200 rounded text-sm">
-             {{ mensagemErro }}
-          </div>
-
           <div>
             <label class="block text-xs text-gray-400 mb-1">Dia da Semana</label>
             <select v-model="form.dia_semana" class="form-input-style" required>
@@ -122,12 +118,15 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
+// 1. IMPORTAR O GLOBAL ALERT
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarSucesso, mostrarErro, mostrarConfirmacao } = useAlert();
 
 const horarios = ref([]);
-const mensagemErro = ref('');
-const modoEdicao = ref(false); // Controla se estamos editando ou criando
+// mensagemErro removido, usamos mostrarErro agora
+const modoEdicao = ref(false);
 
-// Objeto único para o formulário (serve para criar e editar)
 const form = reactive({
   id: null,
   dia_semana: 1,
@@ -143,23 +142,20 @@ const fetchHorarios = async () => {
     horarios.value = response.data.data || response.data;
   } catch (error) {
     console.error("Erro ao buscar horários:", error);
-    mensagemErro.value = "Erro ao buscar horários. Verifique a conexão com a API.";
+    mostrarErro("Erro ao buscar horários. Verifique a conexão com a API.");
   }
 };
 
-// Preenche o formulário com os dados do horário clicado
 const iniciarEdicao = (horario) => {
     modoEdicao.value = true;
     form.id = horario.id;
     form.dia_semana = horario.dia_semana;
-    form.horario_inicio = horario.horario_inicio; // Formato HH:mm:ss
+    form.horario_inicio = horario.horario_inicio;
     form.duracao_minutos = horario.duracao_minutos;
     form.vagas_totais = horario.vagas_totais;
     form.status = horario.status;
-    mensagemErro.value = '';
 };
 
-// Limpa o formulário
 const cancelarEdicao = () => {
     modoEdicao.value = false;
     form.id = null;
@@ -168,14 +164,11 @@ const cancelarEdicao = () => {
     form.duracao_minutos = 50;
     form.vagas_totais = 3;
     form.status = 'ativo';
-    mensagemErro.value = '';
 };
 
 const salvarHorario = async () => {
-  mensagemErro.value = '';
-
   if (form.vagas_totais < 1) {
-      mensagemErro.value = "O número de vagas deve ser pelo menos 1.";
+      mostrarErro("O número de vagas deve ser pelo menos 1.");
       return;
   }
 
@@ -185,42 +178,42 @@ const salvarHorario = async () => {
     if (modoEdicao.value) {
         // UPDATE
         await axios.put(`/api/horarios-agenda/${form.id}`, payload);
-        alert("Horário atualizado com sucesso!");
-        modoEdicao.value = false; // Sai do modo edição
+        mostrarSucesso("Horário atualizado com sucesso!");
+        modoEdicao.value = false;
     } else {
         // CREATE
         await axios.post('/api/horarios-agenda', payload);
-        alert("Horário cadastrado com sucesso!");
+        mostrarSucesso("Horário cadastrado com sucesso!");
     }
 
-    // Reseta form e recarrega lista
     cancelarEdicao();
     await fetchHorarios();
 
   } catch (error) {
     if (error.response && error.response.data && error.response.data.message) {
-        mensagemErro.value = error.response.data.message;
+        mostrarErro(error.response.data.message);
     } else {
-        mensagemErro.value = "Erro ao salvar horário. Verifique os dados.";
+        mostrarErro("Erro ao salvar horário. Verifique os dados.");
     }
   }
 };
 
-// Exclusão Condicional
 const deletarHorario = async (id) => {
-    if (!confirm('Tem certeza que deseja excluir este horário permanentemente?')) return;
+    // 2. CONFIRMAÇÃO COM MODAL (await)
+    const confirmou = await mostrarConfirmacao('Tem certeza que deseja excluir este horário permanentemente?');
+
+    if (!confirmou) return;
 
     try {
         await axios.delete(`/api/horarios-agenda/${id}`);
         await fetchHorarios();
-        alert("Horário excluído com sucesso.");
+        mostrarSucesso("Horário excluído com sucesso.");
     } catch (error) {
         console.error("Erro ao excluir:", error);
-        alert("Não foi possível excluir o horário. Tente novamente.");
+        mostrarErro("Não foi possível excluir o horário. Tente novamente.");
     }
 };
 
-// Funções de Utilitário
 const formatarDiaSemana = (dia) => {
   const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
   return dias[dia === 7 ? 0 : dia];

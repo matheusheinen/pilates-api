@@ -62,7 +62,7 @@
           </div>
 
           <div>
-              <h5 class="font-semibold text-xs text-gray-400 uppercase tracking-wider mb-2">Alunos</h5>
+              <h5 class="font-semibold text-xs text-gray-400 uppercase tracking-wider mb-2">Alunos Matriculados</h5>
 
               <ul v-if="selectedEventDetails.alunos && selectedEventDetails.alunos.length > 0" class="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
                 <li v-for="aluno in selectedEventDetails.alunos" :key="aluno.id_inscricao" class="bg-[#2a2a2a] p-3 rounded-lg flex justify-between items-center text-sm group border border-transparent hover:border-gray-600 transition-colors">
@@ -220,6 +220,9 @@ import interactionPlugin from '@fullcalendar/interaction';
 import ptBrFullCalendar from '@fullcalendar/core/locales/pt-br';
 import { format, parseISO, addWeeks, subWeeks, startOfWeek, endOfWeek, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarSucesso, mostrarErro, mostrarConfirmacao } = useAlert();
 
 const fullCalendar = ref(null);
 const showModal = ref(false);
@@ -277,9 +280,9 @@ const atualizarAgenda = async () => {
   atualizando.value = true;
   try {
     await axios.post('/api/agenda/atualizar');
-    alert('Agenda atualizada.');
+    mostrarSucesso('Agenda atualizada.');
     fullCalendar.value.getApi().refetchEvents();
-  } catch(e) { alert('Erro ao atualizar.'); }
+  } catch(e) { mostrarErro('Erro ao atualizar.'); }
   finally { atualizando.value = false; }
 };
 
@@ -289,26 +292,26 @@ const statusClass = (status) => {
 };
 
 const cancelarAula = async (aluno) => {
-    if (!confirm(`Cancelar a aula de ${aluno.nome}?`)) return;
+    if (!await mostrarConfirmacao(`Cancelar a aula de ${aluno.nome}?`)) return;
     try {
         await axios.post(`/api/aulas/${aluno.id_aula}/cancelar`);
-        alert('Cancelado!');
+        mostrarSucesso('Cancelado!');
         showModal.value = false;
         fullCalendar.value.getApi().refetchEvents();
-    } catch(e) { alert('Erro ao cancelar.'); }
+    } catch(e) { mostrarErro('Erro ao cancelar.'); }
 };
 
 const cancelarEventoEmMassa = async () => {
-    if (!confirm('ATENÇÃO: Cancelar TODA a turma?')) return;
+    if (!await mostrarConfirmacao('ATENÇÃO: Cancelar TODA a turma?')) return;
     try {
         await axios.post('/api/aulas/cancelar-turma', {
             data: selectedEventDetails.value.data_base,
             horario_agenda_id: selectedEventDetails.value.horario_agenda_id
         });
-        alert('Turma cancelada!');
+        mostrarSucesso('Turma cancelada!');
         showModal.value = false;
         fullCalendar.value.getApi().refetchEvents();
-    } catch(e) { alert('Erro ao cancelar turma.'); }
+    } catch(e) { mostrarErro('Erro ao cancelar turma.'); }
 };
 
 const abrirModalReagendar = (aluno) => {
@@ -363,7 +366,7 @@ const confirmarReagendamento = async (vaga) => {
         ? `Mover TODA a turma para ${vaga.dia_semana} às ${vaga.horario.substring(0,5)}?`
         : `Mover ${alunoParaReagendar.value.nome} para ${vaga.dia_semana} às ${vaga.horario.substring(0,5)}?`;
 
-    if (!confirm(msg)) return;
+    if (!await mostrarConfirmacao(msg)) return;
 
     salvandoReagendamento.value = true;
     try {
@@ -374,20 +377,20 @@ const confirmarReagendamento = async (vaga) => {
                 nova_data: vaga.data_hora,
                 id_agenda_destino: vaga.id_agenda
             });
-            alert('Turma reagendada!');
+            mostrarSucesso('Turma reagendada!');
         } else {
             const novaDataHora = `${vaga.data_hora.split('T')[0]} ${vaga.horario}`;
             await axios.post(`/api/aulas/${alunoParaReagendar.value.id_aula}/reagendar`, {
                 nova_data_hora: novaDataHora,
                 id_agenda_destino: vaga.id_agenda
             });
-            alert('Aluno reagendado!');
+            mostrarErro('Aluno reagendado!');
         }
         fecharReagendar();
         showModal.value = false;
         fullCalendar.value.getApi().refetchEvents();
     } catch (error) {
-        alert('Erro: ' + (error.response?.data?.message || 'Erro desconhecido'));
+        mostrarErro('Erro: ' + (error.response?.data?.message || 'Erro desconhecido'));
     } finally {
         salvandoReagendamento.value = false;
     }

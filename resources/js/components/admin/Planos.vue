@@ -106,6 +106,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarSucesso, mostrarErro, mostrarConfirmacao } = useAlert();
 
 const planos = ref([]);
 const loading = ref(true);
@@ -164,10 +167,10 @@ const salvarPlano = async () => {
     try {
         if (modoEdicao.value) {
             await axios.put(`/api/planos/${form.id}`, form);
-            alert('Plano atualizado com sucesso!');
+            mostrarSucesso('Plano atualizado com sucesso!');
         } else {
             await axios.post('/api/planos', form);
-            alert('Plano criado com sucesso!');
+            mostrarSucesso('Plano criado com sucesso!');
         }
 
         cancelarEdicao();
@@ -187,15 +190,18 @@ const salvarPlano = async () => {
 
 // 5. Deletar
 const deletarPlano = async (id) => {
-    if (!confirm('Tem certeza que deseja excluir este plano?')) return;
+
+    const confirmou = await mostrarConfirmacao('Tem certeza que deseja excluir este plano?', 'Excluir Plano');
+
+    if (!confirmou) return;
 
     try {
         await axios.delete(`/api/planos/${id}`);
         await carregarPlanos();
-        alert('Plano excluído com sucesso!');
+        mostrarSucesso('Plano excluído com sucesso!');
     } catch (error) {
         console.error("Erro ao deletar:", error);
-        alert("Erro ao excluir: Este plano pode estar vinculado a alunos.");
+        mostrarErro("Erro ao excluir: Este plano pode estar vinculado a alunos.");
     }
 };
 

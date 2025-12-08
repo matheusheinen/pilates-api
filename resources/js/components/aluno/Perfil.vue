@@ -36,6 +36,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarErro, mostrarSucesso } = useAlert();
 
 const salvando = ref(false);
 const form = reactive({
@@ -73,13 +76,13 @@ const salvar = async () => {
     salvando.value = true;
     try {
         await axios.put(`/api/usuarios/${form.id}`, form);
-        alert('Dados atualizados com sucesso!');
+        mostrarSucesso('Dados atualizados com sucesso!');
         // Atualiza localStorage
         const user = JSON.parse(localStorage.getItem('userData'));
         user.nome = form.nome;
         localStorage.setItem('userData', JSON.stringify(user));
     } catch (error) {
-        alert('Erro ao atualizar: ' + (error.response?.data?.message || 'Erro desconhecido.'));
+        mostrarErro('Erro ao atualizar: ' + (error.response?.data?.message || 'Erro desconhecido.'));
     } finally {
         salvando.value = false;
     }
