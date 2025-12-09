@@ -54,7 +54,9 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-import AlertMobile from '../AlertMobile.vue';
+import { useAlert } from '../../composables/useAlert';
+
+const { mostrarSucesso, mostrarErro, mostrarConfirmacao } = useAlert();
 
 const router = useRouter();
 const usuario = ref(JSON.parse(localStorage.getItem('userData')) || {});
@@ -64,7 +66,7 @@ const primeiroNome = computed(() => {
 });
 
 const logout = async () => {
-    if(!confirm("Deseja sair do aplicativo?")) return;
+    if(!await mostrarConfirmacao("Deseja sair do aplicativo?")) return;
     try { await axios.post('/api/logout'); } catch (e) {}
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');

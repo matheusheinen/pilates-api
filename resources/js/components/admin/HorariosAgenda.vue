@@ -54,78 +54,90 @@
       </div>
 
       <div class="lg:col-span-2">
-        <div class="bg-[#242424] rounded-xl border border-gray-700 overflow-hidden shadow-md">
-          <div v-if="!horarios.length" class="p-8 text-center text-gray-500">
-              Nenhum horário ativo cadastrado.
+        <div class="bg-[#242424] rounded-xl border border-gray-700 overflow-hidden shadow-md flex flex-col h-full min-h-[400px]">
+
+          <div class="flex overflow-x-auto border-b border-gray-700 bg-[#1e1e1e] scrollbar-hide">
+            <button
+              v-for="dia in diasAbas"
+              :key="dia.id"
+              @click="abaAtiva = dia.id"
+              class="px-5 py-3 text-sm font-semibold whitespace-nowrap transition-colors border-b-2 flex-1 hover:bg-[#252525]"
+              :class="abaAtiva === dia.id ? 'border-teal-500 text-teal-400 bg-[#2a2a2a]' : 'border-transparent text-gray-400'"
+            >
+              {{ dia.nome }}
+            </button>
           </div>
 
-          <div v-else class="divide-y divide-gray-700">
-            <div class="grid grid-cols-12 gap-2 p-3 bg-[#2a2a2a] text-xs text-gray-400 font-medium uppercase tracking-wider">
-               <div class="col-span-3">Dia / Hora</div>
-               <div class="col-span-2">Duração</div>
-               <div class="col-span-3 text-center">Ocupação</div>
-               <div class="col-span-4 text-right">Ações</div>
+          <div class="p-4 flex-1 bg-[#242424]">
+
+            <div v-if="!horariosFiltrados.length" class="h-full flex flex-col items-center justify-center text-gray-500 py-10 border-2 border-dashed border-gray-800 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <p>Nenhum horário cadastrado para {{ getNomeDia(abaAtiva) }}.</p>
             </div>
 
-            <div v-for="horario in horarios" :key="horario.id" class="grid grid-cols-12 items-center gap-2 py-3 px-3 hover:bg-[#2b2b2b] transition duration-150 text-sm">
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div
+                v-for="horario in horariosFiltrados"
+                :key="horario.id"
+                class="flex items-center justify-between bg-[#1a1a1a] p-3 rounded-lg border border-gray-700 hover:border-teal-900/50 transition group"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="bg-[#151515] px-3 py-2 rounded text-teal-400 font-mono font-bold text-lg border border-gray-800 shadow-inner">
+                     {{ horario.horario_inicio?.substring(0, 5) }}
+                  </div>
+                  <div>
+                     <div class="text-[10px] uppercase text-gray-500 font-bold mb-0.5">{{ horario.duracao_minutos }} min</div>
+                     <div class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="horario.ocupacao >= horario.vagas_totais ? 'bg-red-500' : 'bg-green-500'"></span>
+                        <span class="text-xs font-medium text-gray-300">
+                          {{ horario.ocupacao || 0 }}/{{ horario.vagas_totais }} alunos
+                        </span>
+                     </div>
+                  </div>
+                </div>
 
-              <div class="col-span-3 font-medium">
-                <p class="text-white">{{ formatarDiaSemana(horario.dia_semana) }}</p>
-                <p class="text-teal-400 text-xs font-mono">{{ horario.horario_inicio?.substring(0, 5) || 'N/A' }}</p>
-              </div>
+                <div class="flex gap-2">
+                   <button
+                      @click="iniciarEdicao(horario)"
+                      class="p-2 bg-[#222] hover:bg-blue-900/20 text-blue-400 rounded transition border border-gray-800 hover:border-blue-800"
+                      title="Editar">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                   </button>
 
-              <div class="col-span-2 text-gray-300">
-                {{ horario.duracao_minutos }} min
-              </div>
+                   <button
+                      v-if="Number(horario.ocupacao) === 0"
+                      @click="deletarHorario(horario.id)"
+                      class="p-2 bg-[#222] hover:bg-red-900/20 text-red-400 rounded transition border border-gray-800 hover:border-red-800"
+                      title="Excluir">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                   </button>
 
-              <div class="col-span-3 text-center">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      :class="horario.ocupacao >= horario.vagas_totais ? 'bg-red-900/30 text-red-200 border border-red-800' : 'bg-green-900/30 text-green-200 border border-green-800'">
-                   {{ horario.ocupacao || 0 }} / {{ horario.vagas_totais }}
-                </span>
-              </div>
-
-              <div class="col-span-4 text-right flex justify-end gap-2">
-                 <button
-                    @click="iniciarEdicao(horario)"
-                    class="text-blue-400 hover:text-blue-300 bg-blue-900/20 hover:bg-blue-900/40 px-2 py-1 rounded transition font-semibold text-xs flex items-center"
-                    title="Editar Horário">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    Editar
-                 </button>
-
-                 <button
-                    v-if="Number(horario.ocupacao) === 0"
-                    @click="deletarHorario(horario.id)"
-                    class="text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/40 px-2 py-1 rounded transition font-semibold text-xs flex items-center"
-                    title="Excluir Horário">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    Excluir
-                 </button>
-
-                 <span v-else class="text-gray-600 text-[10px] border border-gray-700 px-2 py-1 rounded cursor-not-allowed flex items-center" title="Não é possível excluir horários com alunos matriculados">
-                    Ocupado
-                 </span>
+                   <div v-else class="p-2 text-gray-600 cursor-not-allowed opacity-50" title="Ocupado">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                   </div>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import axios from 'axios';
-// 1. IMPORTAR O GLOBAL ALERT
 import { useAlert } from '../../composables/useAlert';
 
 const { mostrarSucesso, mostrarErro, mostrarConfirmacao } = useAlert();
 
 const horarios = ref([]);
-// mensagemErro removido, usamos mostrarErro agora
 const modoEdicao = ref(false);
+// Aba ativa começa na Segunda-feira (1)
+const abaAtiva = ref(1);
 
 const form = reactive({
   id: null,
@@ -135,6 +147,29 @@ const form = reactive({
   vagas_totais: 3,
   status: 'ativo'
 });
+
+// Definição das abas para o loop
+const diasAbas = [
+    { id: 1, nome: 'Segunda' },
+    { id: 2, nome: 'Terça' },
+    { id: 3, nome: 'Quarta' },
+    { id: 4, nome: 'Quinta' },
+    { id: 5, nome: 'Sexta' },
+    { id: 6, nome: 'Sábado' },
+    { id: 7, nome: 'Domingo' }
+];
+
+// Computed Property para filtrar os horários pela aba ativa e ordenar por hora
+const horariosFiltrados = computed(() => {
+    return horarios.value
+        .filter(h => parseInt(h.dia_semana) === abaAtiva.value)
+        .sort((a, b) => a.horario_inicio.localeCompare(b.horario_inicio));
+});
+
+const getNomeDia = (id) => {
+    const dia = diasAbas.find(d => d.id === id);
+    return dia ? dia.nome : 'Dia Selecionado';
+};
 
 const fetchHorarios = async () => {
   try {
@@ -154,12 +189,15 @@ const iniciarEdicao = (horario) => {
     form.duracao_minutos = horario.duracao_minutos;
     form.vagas_totais = horario.vagas_totais;
     form.status = horario.status;
+
+    // Opcional: Mudar a aba para o dia que está sendo editado para facilitar visualização
+    abaAtiva.value = parseInt(horario.dia_semana);
 };
 
 const cancelarEdicao = () => {
     modoEdicao.value = false;
     form.id = null;
-    form.dia_semana = 1;
+    form.dia_semana = abaAtiva.value; // Mantém o dia atual da aba para facilitar cadastro em massa
     form.horario_inicio = '10:00';
     form.duracao_minutos = 50;
     form.vagas_totais = 3;
@@ -176,18 +214,18 @@ const salvarHorario = async () => {
 
   try {
     if (modoEdicao.value) {
-        // UPDATE
         await axios.put(`/api/horarios-agenda/${form.id}`, payload);
         mostrarSucesso("Horário atualizado com sucesso!");
         modoEdicao.value = false;
     } else {
-        // CREATE
         await axios.post('/api/horarios-agenda', payload);
         mostrarSucesso("Horário cadastrado com sucesso!");
     }
 
     cancelarEdicao();
     await fetchHorarios();
+    // Garante que a aba mostrada seja a do dia que acabou de ser salvo
+    abaAtiva.value = payload.dia_semana;
 
   } catch (error) {
     if (error.response && error.response.data && error.response.data.message) {
@@ -199,7 +237,6 @@ const salvarHorario = async () => {
 };
 
 const deletarHorario = async (id) => {
-    // 2. CONFIRMAÇÃO COM MODAL (await)
     const confirmou = await mostrarConfirmacao('Tem certeza que deseja excluir este horário permanentemente?');
 
     if (!confirmou) return;
@@ -214,16 +251,18 @@ const deletarHorario = async (id) => {
     }
 };
 
-const formatarDiaSemana = (dia) => {
-  const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-  return dias[dia === 7 ? 0 : dia];
-};
-
 onMounted(fetchHorarios);
 </script>
 
 <style scoped>
 .form-input-style {
     @apply w-full bg-[#1e1e1e] border border-[#444] text-white rounded p-2 text-sm focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>

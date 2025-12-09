@@ -142,6 +142,17 @@ class AulaController extends Controller
             return response()->json(['message' => 'Não autorizado.'], 403);
         }
 
+        // Validação de 24h para cancelamento (Apenas para Alunos)
+        // Admin pode cancelar a qualquer momento
+        if ($usuarioLogado->tipo !== 'admin') {
+            $limiteAntecedencia = Carbon::now()->addHours(24);
+            if ($aula->data_hora_inicio->lessThan($limiteAntecedencia)) {
+                return response()->json([
+                    'message' => 'O cancelamento só é permitido com no mínimo 24 horas de antecedência.'
+                ], 422);
+            }
+        }
+
         $aula->update(['status' => 'cancelada']);
 
         return response()->json(['message' => 'Aula cancelada com sucesso.']);
@@ -157,9 +168,19 @@ class AulaController extends Controller
         $aulaOriginal = Aula::findOrFail($id);
         $usuarioLogado = Auth::user();
 
-
         if ($usuarioLogado->tipo !== 'admin' && $aulaOriginal->usuario_id !== $usuarioLogado->id) {
             return response()->json(['message' => 'Não autorizado.'], 403);
+        }
+
+        // Validação de 24h para reagendamento (Apenas para Alunos)
+        // Admin pode reagendar a qualquer momento
+        if ($usuarioLogado->tipo !== 'admin') {
+            $limiteAntecedencia = Carbon::now()->addHours(24);
+            if ($aulaOriginal->data_hora_inicio->lessThan($limiteAntecedencia)) {
+                return response()->json([
+                    'message' => 'O reagendamento só é permitido com no mínimo 24 horas de antecedência.'
+                ], 422);
+            }
         }
 
         $novaData = Carbon::parse($request->nova_data_hora);
@@ -253,6 +274,15 @@ class AulaController extends Controller
         $aulaOriginal = $aulaId ? Aula::find($aulaId) : null;
         $usuarioLogado = Auth::user();
 
+        // VALIDAÇÃO 1: Bloqueio da aula de ORIGEM (apenas para alunos)
+        // Se for Admin, pula essa verificação e permite listar mesmo em cima da hora
+        if ($aulaOriginal && $usuarioLogado->tipo !== 'admin') {
+            $limiteAntecedencia = Carbon::now()->addHours(24);
+            if ($aulaOriginal->data_hora_inicio->lessThan($limiteAntecedencia)) {
+                return response()->json([]); // Retorna vazio para o aluno
+            }
+        }
+
         $inicioSemana = $dataBase->copy()->startOfWeek(Carbon::SUNDAY);
         $fimSemana = $dataBase->copy()->endOfWeek(Carbon::SATURDAY);
         $agora = Carbon::now();
@@ -284,7 +314,12 @@ class AulaController extends Controller
 
                         if ($temConflito) continue;
 
-                        if ($dataHoraSlot->gt($agora->copy()->addHour())) {
+                        // VALIDAÇÃO 2: Bloqueio do horário de DESTINO
+                        // Admin: Pode agendar em qualquer horário futuro (ignora o buffer de 1h)
+                        // Aluno: Só pode agendar com 1h de antecedência mínima
+                        $margemMinima = $usuarioLogado->tipo === 'admin' ? $agora : $agora->copy()->addHour();
+
+                        if ($dataHoraSlot->gt($margemMinima)) {
                             $ocupacao = Aula::where('data_hora_inicio', $dataHoraSlot->format('Y-m-d H:i:s'))
                                 ->where('horario_agenda_id', $slot->id)
                                 ->where('status', 'agendada')
@@ -309,6 +344,7 @@ class AulaController extends Controller
         usort($horariosDisponiveis, fn($a, $b) => $a['data_hora'] <=> $b['data_hora']);
         return response()->json($horariosDisponiveis);
     }
+
     public function atualizarAgenda(Request $request)
     {
         if (Auth::user()->tipo !== 'admin') return response()->json(['message' => 'Acesso não autorizado'], 403);

@@ -43,7 +43,7 @@
                     @input="formatarCPF"
                     maxlength="14"
                     type="text"
-                    placeholder="CPF (apenas números será enviado)"
+                    placeholder="CPF *"
                     class="form-input"
                 >
 
@@ -168,6 +168,9 @@
 import { reactive, ref } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { useAlert } from '../composables/useAlert';
+
+const { mostrarErro, mostrarConfirmacao, mostrarSucesso } = useAlert();
 
 // Não precisamos de bibliotecas externas para data se usarmos Intl nativo
 const router = useRouter();
@@ -260,7 +263,7 @@ const pularAgendamento = () => {
 };
 
 const finalizarCadastro = async () => {
-    if (!aulaSelecionada.value && step.value === 2 && !confirm("Deseja finalizar o cadastro sem agendar a aula experimental?")) {
+    if (!aulaSelecionada.value && step.value === 2 && !await mostrarConfirmacao("Deseja finalizar o cadastro sem agendar a aula experimental?")) {
         return;
     }
 
