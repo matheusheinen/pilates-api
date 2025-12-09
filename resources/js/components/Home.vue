@@ -1,16 +1,19 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+
+// Cores definidas conforme seu padrão
 const COLORS = {bgDark: '#121212',elementDark: '#0F1616',accent: '#0f766e',text: 'white'};
 
 const navItems = [
-  { name: 'O Estúdio', href: '#sobre' },
-  { name: 'A Jornada', href: '#jornada' },
-  { name: 'Princípios', href: '#principios' }, 
-  { name: 'Benefícios', href: '#beneficios' }, 
-  { name: 'Galeria', href: '#galeria' },
-  { name: 'Localização', href: '#localizacao' },
+    { name: 'O Estúdio', href: '#sobre' },
+    { name: 'A Jornada', href: '#jornada' },
+    { name: 'Princípios', href: '#principios' },
+    { name: 'Benefícios', href: '#beneficios' },
+    { name: 'Galeria', href: '#galeria' },
+    { name: 'Localização', href: '#localizacao' },
 ];
 
+// --- Lógica de Scroll e Observer (Mantida igual) ---
 const useOnScreen = (targetRef, rootMargin = '0px') => {
   const isVisible = ref(false);
   let observer;
@@ -37,11 +40,11 @@ const handleScroll = () => {scrollPosition.value = window.pageYOffset;};
 
 onMounted(() => {window.addEventListener('scroll', handleScroll, { passive: true });handleScroll(); });
 onUnmounted(() => {window.removeEventListener('scroll', handleScroll);});
+
 const heroOpacity = computed(() => {return 1 - Math.min(1, scrollPosition.value / 400);});
 const heroScale = computed(() => {return 1 - Math.min(0.3, scrollPosition.value / 1500);});
 const heroTransform = computed(() => {const offset = scrollPosition.value * 0.1;return `scale(${heroScale.value}) translateY(-${offset}px)`;});
 const parallaxOffset = computed(() => {return scrollPosition.value * 0.3;});
-
 
 const sobreRef = ref(null);
 const jornadaRef = ref(null);
@@ -54,8 +57,8 @@ const isSobreVisible = useOnScreen(sobreRef);
 const isJornadaVisible = useOnScreen(jornadaRef);
 const isPrincipiosVisible = useOnScreen(principiosRef);
 const isBeneficiosVisible = useOnScreen(beneficiosRef);
-const isGaleriaVisible = useOnScreen(galeriaRef); 
-const isLocalizacaoVisible = useOnScreen(localizacaoRef); 
+const isGaleriaVisible = useOnScreen(galeriaRef);
+const isLocalizacaoVisible = useOnScreen(localizacaoRef);
 const getRevealClasses = (isVisible) => {return {'opacity-100 translate-y-0': isVisible,'opacity-0 translate-y-[50px]': !isVisible,'transition-all duration-1000 ease-out': true};};
 
 const ElementCard = {
@@ -69,7 +72,6 @@ const ElementCard = {
   template: `
     <div class="p-6 rounded-2xl shadow-2xl transition-all duration-300 ease-in-out cursor-pointer hover:shadow-2xl hover:scale-[1.02] transform backdrop-blur-sm" :style="cardStyle" @mouseenter="isHovered = true" @mouseleave="isHovered = false">
       <div class="flex items-center space-x-4 mb-4">
-        <!-- SVG Icon Path -->
         <svg class="w-8 h-8 flex-shrink-0" :style="{ color: colors.accent }" fill="currentColor" viewBox="0 0 24 24"><path :d="icon" /></svg>
         <h3 class="text-xl font-semibold tracking-wide" :style="{ color: colors.accent }">{{ title }}</h3>
       </div>
@@ -77,6 +79,7 @@ const ElementCard = {
     </div>
   `
 };
+
 const principlesData = [
     { title: "Respiração", content: "O elo entre corpo e mente. A respiração correta é essencial para a estabilização do tronco e a fluidez do movimento.", icon: "M10 20h4v2h-4zM20 10h2v4h-2zM4 10h2v4H4zM12 2c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zM12 6l-2 2h4l-2-2z" },
     { title: "Concentração", content: "Cada exercício é feito com total atenção à forma e à sensação, garantindo o máximo controle muscular.", icon: "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" },
@@ -90,6 +93,7 @@ const principlesData = [
 <template>
   <div class="min-h-screen relative overflow-x-hidden font-sans" :style="{ backgroundColor: COLORS.bgDark, color: COLORS.text }">
     <div class="fixed inset-0 w-full h-[200vh] z-0" :style="{ backgroundColor: COLORS.elementDark, transform: `translateY(-${parallaxOffset}px)`, backgroundImage: `radial-gradient(circle at 50% 100%, ${COLORS.accent}15 10%, transparent 60%), radial-gradient(circle at 10% 20%, ${COLORS.accent}0a 5%, transparent 30%), linear-gradient(180deg, ${COLORS.bgDark} 0%, ${COLORS.elementDark} 100%)` }"></div>
+
     <header class="sticky top-0 z-50 backdrop-blur-md transition-all duration-300">
       <div class="flex justify-between items-center py-4 px-6 md:px-12 max-w-7xl mx-auto">
         <a href="#home" class="flex items-center space-x-2 text-2xl md:text-3xl font-extrabold tracking-wider">
@@ -100,25 +104,33 @@ const principlesData = [
             {{ item.name }}
             <span class="absolute bottom-0 left-0 w-full h-0.5 scale-x-0 group-hover:scale-x-100 transition-all duration-300" :style="{ backgroundColor: COLORS.accent }"></span>
           </a>
+          <router-link to="/login" class="text-white relative group text-lg font-medium opacity-90 hover:opacity-100 transition-all">
+             Login
+             <span class="absolute bottom-0 left-0 w-full h-0.5 scale-x-0 group-hover:scale-x-100 transition-all duration-300" :style="{ backgroundColor: COLORS.accent }"></span>
+          </router-link>
         </nav>
       </div>
     </header>
+
     <section id="home" class="relative h-[80vh] md:h-[90vh] flex flex-col items-center justify-center overflow-hidden z-20">
         <div class="relative z-20 text-center p-4 md:p-8 transition-all duration-0" :style="{ opacity: heroOpacity, transform: heroTransform }">
         <h1 class="text-5xl md:text-8xl font-black mb-4 tracking-tighter" :style="{ color: COLORS.accent }">POSTURA & EQUILÍBRIO</h1>
         <h2 class="text-xl md:text-3xl max-w-4xl font-light leading-relaxed italic text-gray-300">Proporcionar uma jornada de <span class="font-semibold" :style="{ color: COLORS.accent }">reconexão com a natureza</span>, explorando cuidadosamente o seu interior.</h2>
-        <a href="/login" class="mt-12 inline-block px-10 py-4 rounded-full text-lg font-bold shadow-xl transition-all duration-300 hover:scale-105 uppercase tracking-wider" :style="{ backgroundColor: COLORS.accent, color: COLORS.elementDark }">Saiba Mais</a>
+
+        <router-link to="/register" class="mt-12 inline-block px-10 py-4 rounded-full text-lg font-bold shadow-xl transition-all duration-300 hover:scale-105 uppercase tracking-wider" :style="{ backgroundColor: COLORS.accent, color: COLORS.elementDark }">
+            Saiba Mais
+        </router-link>
       </div>
     </section>
+
     <main class="relative z-30 pt-16 md:pt-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
       <section id="sobre" ref="sobreRef" class="py-20 md:py-32" :class="getRevealClasses(isSobreVisible)">
         <h2 class="text-4xl md:text-6xl font-extrabold mb-16 text-center" :style="{ color: COLORS.accent }">Tayla Portaluppi: A Instrutora</h2>
-
         <div class="flex flex-col md:flex-row items-center md:space-x-16">
           <div class="w-full md:w-1/3 mb-8 md:mb-0 rounded-2xl overflow-hidden shadow-2xl aspect-square  transform hover:scale-[1.01] transition-transform duration-500 flex items-center justify-center">
             <img src="../public/professora.png" alt="Foto da Instrutora Tayla Portaluppi" class="w-full h-full object-cover opacity-70">
           </div>
-
           <div class="w-full md:w-2/3 text-xl space-y-6 text-gray-200 border-l-4 pl-8" :style="{ borderColor: COLORS.accent }">
             <p>Formada em Educação Física pela Univates em Agosto de 2022, a jornada de Tayla no Pilates começou muito antes, impulsionada por um sonho de criar um ambiente único de cuidado, onde cada detalhe é pensado para o seu bem-estar.</p>
             <p class="italic font-semibold text-2xl" :style="{ color: COLORS.accent }">"O Pilates é a arte de alinhar corpo, mente e respiração. Meu propósito é guiar cada pessoa para um estado de equilíbrio profundo, onde o movimento deixa de ser obrigação e vira liberdade, promovendo saúde de forma integral."</p>
@@ -127,6 +139,7 @@ const principlesData = [
           </div>
         </div>
       </section>
+
       <section id="jornada" ref="jornadaRef" class="py-20 md:py-32" :class="getRevealClasses(isJornadaVisible)">
         <h2 class="text-4xl md:text-6xl font-extrabold mb-16 text-center" :style="{ color: COLORS.accent }">O Caminho para a Sua Melhor Versão</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -135,6 +148,7 @@ const principlesData = [
           <ElementCard title="Equilíbrio Interior" content="Integre respiração e movimento para alcançar um estado de presença e calma, reduzindo o stress e promovendo a clareza mental." icon="M12 3l-8 4v7c0 3.86 3.14 7 7 7s7-3.14 7-7V7l-8-4zm0 15c-2.76 0-5-2.24-5-5V9l5-2.5 5 2.5v3c0 2.76-2.24 5-5 5z":colors="COLORS" />
         </div>
       </section>
+
       <section id="principios" ref="principiosRef" class="py-20 md:py-32" :class="getRevealClasses(isPrincipiosVisible)">
         <h2 class="text-4xl md:text-6xl font-extrabold mb-16 text-center" :style="{ color: COLORS.accent }">Os 6 Princípios Fundamentais</h2>
         <p class="text-center text-lg max-w-4xl mx-auto mb-16 text-gray-300">O Método Pilates é regido por pilares que garantem a execução correta e a máxima eficácia de cada exercício. Conheça a base da nossa filosofia de movimento.</p>
@@ -143,6 +157,7 @@ const principlesData = [
           <ElementCard v-for="(p, i) in principlesData" :key="i" :title="p.title" :content="p.content" :icon="p.icon" :colors="COLORS"/>
         </div>
       </section>
+
       <section id="beneficios" ref="beneficiosRef" class="py-20 md:py-32 bg-opacity-10" :class="getRevealClasses(isBeneficiosVisible)" :style="{ backgroundColor: `${COLORS.elementDark}50` }">
         <h2 class="text-4xl md:text-6xl font-extrabold mb-16 text-center" :style="{ color: COLORS.accent }">Pilates: Para Quem e Por Quê?</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-16">
@@ -190,7 +205,6 @@ const principlesData = [
       <section id="galeria" ref="galeriaRef" class="py-20 md:py-32" :class="getRevealClasses(isGaleriaVisible)">
         <h2 class="text-4xl md:text-6xl font-extrabold mb-16 text-center" :style="{ color: COLORS.accent }">Ambiente Moderno</h2>
         <p class="text-center text-lg max-w-3xl mx-auto mb-12 text-gray-300">Conheça o ambiente acolhedor e moderno do estúdio, projetado para o seu conforto e concentração durante as aulas.</p>
-
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div v-for="(src, i) in ['https://sistema.bendfy.com/1.jpg','https://sistema.bendfy.com/2.jpg','https://sistema.bendfy.com/3.jpg','https://sistema.bendfy.com/4.jpg']" :key="i" class="rounded-xl overflow-hidden border-2" :style="{ borderColor: COLORS.accent }">
             <div class="w-full aspect-[4/3] overflow-hidden">
@@ -199,6 +213,7 @@ const principlesData = [
           </div>
         </div>
       </section>
+
       <section id="localizacao" ref="localizacaoRef" class="py-20 md:py-32">
         <h2 class="text-4xl md:text-6xl font-extrabold mb-16 text-center" :style="{ color: COLORS.accent }">Localização</h2>
         <p class="text-center text-lg max-w-3xl mx-auto mb-12 text-gray-300">Estamos localizados em um ponto de fácil acesso, com um ambiente tranquilo e inspirador para suas sessões de Pilates. Venha nos visitar!</p>
@@ -206,10 +221,25 @@ const principlesData = [
         <div class="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl border-4" :style="{ borderColor: COLORS.accent, backgroundColor: COLORS.elementDark }">
           <iframe src="https://www.google.com/maps/embed?pb=!4v1765181746294!6m8!1m7!1sBQ8yrh1kxrK0lfbrEuzD_Q!2m2!1d-28.84431411187509!2d-51.8901865920318!3f83.67066166787077!4f-4.318799030573601!5f0.7820865974627469"width="100%"height="450"style="border:0;"allowfullscreen=""loading="lazy"referrerpolicy="no-referrer-when-downgrade"title="Localização do Estúdio de Pilates"></iframe>
         </div>
-        
+
         <div class="text-center mt-8 text-lg font-medium text-gray-300">
-          <p>Av. Alberto Pasqualini, 519, Centro, G7 Edifício Los Angeles, sala 04 - Guaporé/RS</p>
-          <a href="/login" class="text-green-400 hover:underline transition-colors mt-2 inline-block">Agende uma aula</a>
+          <p class="mb-6">Av. Alberto Pasqualini, 519, Centro, G7 Edifício Los Angeles, sala 04 - Guaporé/RS</p>
+
+          <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+
+             <router-link to="/register"
+                class="px-8 py-3 rounded-full font-bold shadow-lg transition-transform hover:scale-105"
+                :style="{ backgroundColor: COLORS.accent, color: COLORS.elementDark }">
+                Agende uma aula
+             </router-link>
+
+             <router-link to="/login"
+                class="px-8 py-3 rounded-full font-bold border transition-colors hover:bg-white/10"
+                :style="{ borderColor: COLORS.accent, color: COLORS.accent }">
+                Área do Aluno (Login)
+             </router-link>
+          </div>
+
         </div>
       </section>
     </main>
