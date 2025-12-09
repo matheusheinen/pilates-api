@@ -56,17 +56,26 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { useAlert } from '../../composables/useAlert';
 
+// --- IMPORTANTE: Faltava importar o componente visual do Alerta ---
+import AlertMobile from '../AlertMobile.vue';
+
 const { mostrarSucesso, mostrarErro, mostrarConfirmacao } = useAlert();
 
 const router = useRouter();
-const usuario = ref(JSON.parse(localStorage.getItem('userData')) || {});
+// Adicionando proteção contra null no localStorage
+const userDataStr = localStorage.getItem('userData');
+const usuario = ref(userDataStr ? JSON.parse(userDataStr) : {});
 
 const primeiroNome = computed(() => {
     return usuario.value.nome ? usuario.value.nome.split(' ')[0] : 'Aluno';
 });
 
 const logout = async () => {
-    if(!await mostrarConfirmacao("Deseja sair do aplicativo?")) return;
+    // Agora o AlertMobile estará carregado para responder a esta chamada
+    const confirmou = await mostrarConfirmacao("Deseja realmente sair?");
+
+    if (!confirmou) return;
+
     try { await axios.post('/api/logout'); } catch (e) {}
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
