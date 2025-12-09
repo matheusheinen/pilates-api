@@ -62,7 +62,7 @@
           </div>
 
           <div>
-              <h5 class="font-semibold text-xs text-gray-400 uppercase tracking-wider mb-2">Alunos Matriculados</h5>
+              <h5 class="font-semibold text-xs text-gray-400 uppercase tracking-wider mb-2">Alunos</h5>
 
               <ul v-if="selectedEventDetails.alunos && selectedEventDetails.alunos.length > 0" class="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
                 <li v-for="aluno in selectedEventDetails.alunos" :key="aluno.id_inscricao" class="bg-[#2a2a2a] p-3 rounded-lg flex justify-between items-center text-sm group border border-transparent hover:border-gray-600 transition-colors">
